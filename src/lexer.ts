@@ -1,9 +1,9 @@
 const fs = require('fs')
 
 function getChar(): string {
-  let buffer = Buffer.alloc(1)
-  fs.readSync(0, buffer, 0, 1)
-  return buffer.toString('utf8')
+    let buffer = Buffer.alloc(1)
+    fs.readSync(0, buffer, 0, 1)
+    return buffer.toString('utf8')
 }
 // fs.readLine()
 
@@ -22,7 +22,7 @@ export class Lexer {
     ch = getChar();
 
     getToken(): token {
-        while(/\s/.test(this.ch)) {
+        while (/\s/.test(this.ch)) {
             this.ch = getChar();
         }
 
@@ -30,10 +30,10 @@ export class Lexer {
             case "\0":
                 return token.eof;
             case "\\":
-            // case "λ":
+                // case "λ":
                 this.ch = getChar();
                 return token.lambda;
-            
+
             case "(":
                 this.ch = getChar();
                 return token.bracketleft;
@@ -41,7 +41,7 @@ export class Lexer {
             case ")":
                 this.ch = getChar();
                 return token.bracketright;
-            
+
             case ".":
                 this.ch = getChar();
                 return token.dot;

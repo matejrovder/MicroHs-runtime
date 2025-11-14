@@ -36,7 +36,7 @@ class Parser {
                 {
                     this.getNextToken();
                     let rhs = this.parseBracketExpr(null);
-                    if (lhs !== null) 
+                    if (lhs !== null)
                         lhs = new ApplicationNode(lhs, rhs);
                     else
                         lhs = rhs
@@ -101,3 +101,6 @@ let p = new Parser();
 let n = p.parse(null);
 n.printTree(0);
 console.log(n.expStr());
+
+let ski = n.compileSKI();
+console.log(ski.expStr());
