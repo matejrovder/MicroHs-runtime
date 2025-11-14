@@ -1,11 +1,14 @@
-interface ASTNode {
-    printTree(indent: number): void;
-    expStr(): string;
-    compileSKI(): ASTNode;
-    abstract(absVariable: string): ASTNode;
+abstract class ASTNode {
+    abstract printTree(indent: number): void;
+    abstract expStr(): string;
+    abstract compileSKI(): ASTNode;
+    abstract abstractSKI(absVariable: string): ASTNode;
+    etaReduction(redVariable: string): ASTNode | null {
+        return null;
+    }
 }
 
-class EmptyNode implements ASTNode {
+class EmptyNode extends ASTNode {
     printTree(indent: number): void {
         throw new Error("Called print on an empty node");
     }
@@ -15,28 +18,41 @@ class EmptyNode implements ASTNode {
     compileSKI(): ASTNode {
         throw new Error("Called compile on an empty node");
     }
-    abstract(absVariable: string): ASTNode {
+    abstractSKI(absVariable: string): ASTNode {
         throw new Error("Called abstract on an empty node");
     }
 }
 
-class ApplicationNode implements ASTNode {
+class ApplicationNode extends ASTNode {
     lhs: ASTNode;
     rhs: ASTNode;
 
     constructor(lhs: ASTNode, rhs: ASTNode) {
-        // super();
+        super();
         this.lhs = lhs;
         this.rhs = rhs;
+    }
+
+    override etaReduction(redVariable: string): ASTNode | null {
+        if (this.rhs instanceof VariableNode) {
+            if (this.rhs.variable === redVariable) {
+                return this.lhs;
+            }
+        }
+        return null;
     }
 
     compileSKI(): ASTNode {
         return new ApplicationNode(this.lhs.compileSKI(), this.rhs.compileSKI());
     }
 
-    abstract(absVariable: string): ASTNode {
-        const lhs = new ApplicationNode(new CombinatorNode("S"), this.lhs.abstract(absVariable));
-        const rhs = this.rhs.abstract(absVariable);
+    abstractSKI(absVariable: string): ASTNode {
+        let optimized = this.etaReduction(absVariable);
+        if (optimized !== null)
+            return optimized.compileSKI();
+
+        const lhs = new ApplicationNode(new CombinatorNode("S"), this.lhs.abstractSKI(absVariable));
+        const rhs = this.rhs.abstractSKI(absVariable);
         return new ApplicationNode(lhs, rhs);
     }
 
@@ -54,22 +70,32 @@ class ApplicationNode implements ASTNode {
     }
 }
 
-class AbstractionNode implements ASTNode {
+class AbstractionNode extends ASTNode {
     absVariable: string;
     node: ASTNode;
 
     constructor(absVariable: string, node: ASTNode) {
-        // super();
+        super();
         this.absVariable = absVariable;
         this.node = node;
     }
 
     compileSKI(): ASTNode {
-        return this.node.abstract(this.absVariable);
+        const optimized = this.node.etaReduction(this.absVariable);
+        if (optimized !== null) {
+            return optimized.compileSKI();
+        }
+        return this.node.abstractSKI(this.absVariable);
     }
 
-    abstract(absVariable: string): ASTNode {
-        return this.compileSKI().abstract(absVariable);
+    abstractSKI(absVariable: string): ASTNode {
+        const compiled = this.compileSKI();
+        const optimized = compiled.etaReduction(absVariable);
+        if (optimized !== null) {
+            return optimized.compileSKI();
+        }
+
+        return compiled.abstractSKI(absVariable);
     }
 
     printTree(indent: number): void {
@@ -85,11 +111,11 @@ class AbstractionNode implements ASTNode {
     }
 }
 
-class VariableNode implements ASTNode {
+class VariableNode extends ASTNode {
     variable: string;
 
     constructor(variable: string) {
-        // super();
+        super();
         this.variable = variable;
     }
 
@@ -97,7 +123,7 @@ class VariableNode implements ASTNode {
         return this;
     }
 
-    abstract(absVariable: string): ASTNode {
+    abstractSKI(absVariable: string): ASTNode {
         if (absVariable === this.variable) {
             return new CombinatorNode("I");
         }
