@@ -33,8 +33,15 @@ class Parser {
     parse(lhs: ASTNode | null = null): ASTNode {
         switch (this.currentToken) {
             case token.bracketleft:
-                this.getNextToken();
-                return this.parseBracketExpr(lhs);
+                {
+                    this.getNextToken();
+                    let rhs = this.parseBracketExpr(null);
+                    if (lhs !== null) 
+                        lhs = new ApplicationNode(lhs, rhs);
+                    else
+                        lhs = rhs
+                    break;
+                }
             case token.var:
                 {
                     const variable = new VariableNode(this.lexer.varIdentifier);
@@ -46,7 +53,8 @@ class Parser {
                     }
 
                     this.getNextToken()
-                    return this.parse(lhs)
+                    lhs = this.parse(lhs)
+                    break;
                 }
             case token.eof:
                 if (lhs !== null)
@@ -59,12 +67,12 @@ class Parser {
         }
 
 
-        return new EmptyNode;
+        return this.parse(lhs);
     }
 
 
     parseBracketExpr(lhs: ASTNode | null = null): ASTNode {
-        let retVal = new EmptyNode;
+        let rhs = new EmptyNode;
 
         switch (this.currentToken) {
             case token.lambda:
@@ -72,20 +80,24 @@ class Parser {
                     this.getNextToken();
                     const varNode: VariableNode = this.matchVariable()
                     this.match(token.dot);
-                    retVal = new AbstractionNode(varNode.variable, this.parse(null));
+                    rhs = new AbstractionNode(varNode.variable, this.parse(null));
                     break;
                 }
             default: {
-                retVal = this.parse(lhs);
+                rhs = this.parse(lhs);
             }
         }
 
         this.match(token.bracketright)
-        return retVal;
+        if (lhs !== null) {
+            return new ApplicationNode(lhs, rhs);
+        }
+        return rhs;
     }
     // parse
 }
 
 let p = new Parser();
 let n = p.parse(null);
-n.print(0);
+n.printTree(0);
+console.log(n.expStr());

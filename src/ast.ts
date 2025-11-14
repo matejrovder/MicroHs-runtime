@@ -1,9 +1,13 @@
 interface ASTNode {
-    print(indent: number): void;
+    printTree(indent: number): void;
+    expStr(): string;
 }
 
 class EmptyNode implements ASTNode {
-    print(indent: number): void {
+    printTree(indent: number): void {
+        throw new Error("Called print on an empty node");
+    }
+    expStr(): string {
         throw new Error("Called print on an empty node");
     }
 }
@@ -17,14 +21,17 @@ class ApplicationNode implements ASTNode {
         this.lhs = lhs;
         this.rhs = rhs;
     }
-    print(indent: number): void {
+    printTree(indent: number): void {
         let indentWhiteSpace= "";
         for (let i = 0; i < indent; i++) {
             indentWhiteSpace += "\t";
         }
         console.log(indentWhiteSpace + "Application");
-        this.lhs.print(indent + 1);
-        this.rhs.print(indent + 1);
+        this.lhs.printTree(indent + 1);
+        this.rhs.printTree(indent + 1);
+    }
+    expStr(): string {
+        return " ( " + this.lhs.expStr() + " " + this.rhs.expStr() + " ) ";
     }
 }
 
@@ -37,13 +44,16 @@ class AbstractionNode implements ASTNode {
         this.absVariable = absVariable;
         this.node = node;
     }
-    print(indent: number): void {
+    printTree(indent: number): void {
         let indentWhiteSpace= "";
         for (let i = 0; i < indent; i++) {
             indentWhiteSpace += "\t";
         }
         console.log(indentWhiteSpace + "Abstraction lambda " + this.absVariable);
-        this.node.print(indent + 1);
+        this.node.printTree(indent + 1);
+    }
+    expStr(): string {
+        return " ( λ " + this.absVariable + " . " + this.node.expStr() + " ) ";
     }
 }
 
@@ -54,12 +64,15 @@ class VariableNode implements ASTNode {
         // super();
         this.variable = variable;
     }
-    print(indent: number): void {
+    printTree(indent: number): void {
         let indentWhiteSpace= "";
         for (let i = 0; i < indent; i++) {
             indentWhiteSpace += "\t";
         }
         console.log(indentWhiteSpace + this.variable);
+    }
+    expStr(): string {
+        return this.variable;
     }
 }
 

@@ -30,7 +30,7 @@ export class Lexer {
             case "\0":
                 return token.eof;
             case "\\":
-            case "λ":
+            // case "λ":
                 this.ch = getChar();
                 return token.lambda;
             
