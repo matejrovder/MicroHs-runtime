@@ -1,5 +1,5 @@
 import { token, Lexer } from './lexer';
-import { ASTNode, AbstractionNode, ApplicationNode, VariableNode, CombinatorNode, EmptyNode } from './ast'
+import { ASTNode, AbstractionNode, ApplicationNode, VariableNode, CombinatorNode, EmptyNode, makeAbstraction } from './ast'
 
 class Parser {
     currentToken: token = token.eof;
@@ -80,7 +80,7 @@ class Parser {
                     this.getNextToken();
                     const varNode: VariableNode = this.matchVariable()
                     this.match(token.dot);
-                    rhs = new AbstractionNode(varNode.variable, this.parse(null));
+                    rhs = makeAbstraction(varNode.variable, this.parse(null));
                     break;
                 }
             default: {

@@ -27,6 +27,13 @@ class EmptyNode extends ASTNode {
     }
 }
 
+function makeAbstraction(absVariable: string, node: ASTNode): ASTNode {
+    const optimized = node.etaReduction(absVariable);
+    if (optimized !== null)
+        return optimized;
+    return new AbstractionNode(absVariable, node);
+}
+
 class ApplicationNode extends ASTNode {
     lhs: ASTNode;
     rhs: ASTNode;
@@ -92,20 +99,11 @@ class AbstractionNode extends ASTNode {
     }
 
     compileSKI(): ASTNode {
-        const optimized = this.node.etaReduction(this.absVariable);
-        if (optimized !== null) {
-            return optimized.compileSKI();
-        }
         return this.node.abstractSKI(this.absVariable);
     }
 
     abstractSKI(absVariable: string): ASTNode {
         const compiled = this.compileSKI();
-        const optimized = compiled.etaReduction(absVariable);
-        if (optimized !== null) {
-            return optimized.compileSKI();
-        }
-
         return compiled.abstractSKI(absVariable);
     }
 
@@ -165,4 +163,4 @@ class CombinatorNode extends VariableNode {
     }
 }
 
-export { ASTNode, AbstractionNode, ApplicationNode, VariableNode, CombinatorNode, EmptyNode };
+export { ASTNode, AbstractionNode, ApplicationNode, VariableNode, CombinatorNode, EmptyNode, makeAbstraction };
