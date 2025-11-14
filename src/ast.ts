@@ -6,9 +6,13 @@ abstract class ASTNode {
     etaReduction(redVariable: string): ASTNode | null {
         return null;
     }
+    abstract contains(variable: string): boolean;
 }
 
 class EmptyNode extends ASTNode {
+    contains(variable: string): boolean {
+        throw new Error("Called contains on an empty node");
+    }
     printTree(indent: number): void {
         throw new Error("Called print on an empty node");
     }
@@ -33,9 +37,13 @@ class ApplicationNode extends ASTNode {
         this.rhs = rhs;
     }
 
+    contains(variable: string): boolean {
+        return this.lhs.contains(variable) || this.rhs.contains(variable);
+    }
+
     override etaReduction(redVariable: string): ASTNode | null {
         if (this.rhs instanceof VariableNode) {
-            if (this.rhs.variable === redVariable) {
+            if (this.rhs.variable === redVariable && !this.lhs.contains(redVariable)) {
                 return this.lhs;
             }
         }
@@ -79,6 +87,9 @@ class AbstractionNode extends ASTNode {
         this.absVariable = absVariable;
         this.node = node;
     }
+    contains(variable: string): boolean {
+        return this.absVariable !== variable && this.node.contains(variable);
+    }
 
     compileSKI(): ASTNode {
         const optimized = this.node.etaReduction(this.absVariable);
@@ -117,6 +128,10 @@ class VariableNode extends ASTNode {
     constructor(variable: string) {
         super();
         this.variable = variable;
+    }
+
+    contains(variable: string): boolean {
+        return this.variable === variable;
     }
 
     compileSKI(): ASTNode {
