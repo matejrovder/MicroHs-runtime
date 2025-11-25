@@ -17,11 +17,11 @@ interface application extends lambdaterm {
 }
 
 function abstractSKI(term: lambdaterm, absVariable: Ivariable): lambdaterm {
-    switch (term["type"]) {
+    switch (term.type) {
         case "var":
             {
                 const t = term as Ivariable;
-                if (t["name"] === absVariable["name"])
+                if (t.name === absVariable.name)
                     return combinator("I")
                 else return app(combinator("K"), t);
             }
@@ -47,7 +47,7 @@ function abstractSKI(term: lambdaterm, absVariable: Ivariable): lambdaterm {
 }
 
 function compileSKI(term: lambdaterm): lambdaterm {
-    switch (term["type"]) {
+    switch (term.type) {
         case "var":
             {
                 return term
@@ -60,7 +60,7 @@ function compileSKI(term: lambdaterm): lambdaterm {
         case "abs":
             {
                 const t = term as abstraction;
-                return abstractSKI(t["term"], t["var"]);
+                return abstractSKI(t.term, t.var);
             }
         default:
             throw new Error("invalid lambda term type");
@@ -69,7 +69,7 @@ function compileSKI(term: lambdaterm): lambdaterm {
 
 
 function etaReduction(term: lambdaterm, redVariable: Ivariable): lambdaterm | null {
-    switch (term["type"]) {
+    switch (term.type) {
         case "app":
             {
                 const t = term as application;
@@ -90,7 +90,7 @@ function etaReduction(term: lambdaterm, redVariable: Ivariable): lambdaterm | nu
 }
 
 function contains(term: lambdaterm, variable: Ivariable): boolean {
-    switch (term["type"]) {
+    switch (term.type) {
         case "var":
             {
                 const t = term as Ivariable;
@@ -128,7 +128,7 @@ function lam(x: Ivariable, term: lambdaterm): abstraction {
 }
 
 function expStr(term: lambdaterm): string {
-    switch (term["type"]) {
+    switch (term.type) {
         case "var":
             {
                 const t = term as Ivariable;
