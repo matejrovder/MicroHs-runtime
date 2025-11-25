@@ -1,0 +1,3 @@
+(\ x . plus x x ) five -> S plus I five
+(\ t . (\f. t)) -> K
+(\x.(\y.x y x)) -> SSK
