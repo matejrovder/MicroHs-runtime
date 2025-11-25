@@ -1,5 +1,7 @@
 import { token, Lexer } from './lexer';
-import { ASTNode, AbstractionNode, ApplicationNode, VariableNode, CombinatorNode, EmptyNode, makeAbstraction } from './ast'
+// import { ASTNode, AbstractionNode, ApplicationNode, VariableNode, CombinatorNode, EmptyNode, makeAbstraction } from './ast'
+import { lambdaterm, abstraction, application, Ivariable, variable, combinator, app, expStr, makeAbstraction, compileSKI } from './ast'
+
 
 class Parser {
     currentToken: token = token.eof;
@@ -21,35 +23,35 @@ class Parser {
         this.getNextToken();
     }
 
-    matchVariable(): VariableNode {
+    matchVariable(): Ivariable {
         if (this.currentToken !== token.var) {
             throw new Error("invalid token: " + this.currentToken);
         }
         const varName = this.lexer.varIdentifier;
         this.getNextToken();
-        return new VariableNode(varName);
+        return variable(varName);
     }
 
-    parse(lhs: ASTNode | null = null): ASTNode {
+    parse(lhs: lambdaterm | null = null): lambdaterm {
         switch (this.currentToken) {
             case token.bracketleft:
                 {
                     this.getNextToken();
                     let rhs = this.parseBracketExpr(null);
                     if (lhs !== null)
-                        lhs = new ApplicationNode(lhs, rhs);
+                        lhs = app(lhs, rhs);
                     else
                         lhs = rhs
                     break;
                 }
             case token.var:
                 {
-                    const variable = new VariableNode(this.lexer.varIdentifier);
+                    const v = variable(this.lexer.varIdentifier);
                     if (lhs === null) {
-                        lhs = variable;
+                        lhs = v;
                     }
                     else {
-                        lhs = new ApplicationNode(lhs, variable);
+                        lhs = app(lhs, v);
                     }
 
                     this.getNextToken()
@@ -71,16 +73,16 @@ class Parser {
     }
 
 
-    parseBracketExpr(lhs: ASTNode | null = null): ASTNode {
-        let rhs = new EmptyNode;
+    parseBracketExpr(lhs: lambdaterm | null = null): lambdaterm {
+        let rhs = null;
 
         switch (this.currentToken) {
             case token.lambda:
                 {
                     this.getNextToken();
-                    const varNode: VariableNode = this.matchVariable()
+                    const varNode: Ivariable = this.matchVariable()
                     this.match(token.dot);
-                    rhs = makeAbstraction(varNode.variable, this.parse(null));
+                    rhs = makeAbstraction(varNode, this.parse(null));
                     break;
                 }
             default: {
@@ -90,7 +92,7 @@ class Parser {
 
         this.match(token.bracketright)
         if (lhs !== null) {
-            return new ApplicationNode(lhs, rhs);
+            return app(lhs, rhs);
         }
         return rhs;
     }
@@ -99,8 +101,8 @@ class Parser {
 
 let p = new Parser();
 let n = p.parse(null);
-n.printTree(0);
-console.log(n.expStr());
+// n.printTree(0);
+console.log(expStr(n));
 
-let ski = n.compileSKI();
-console.log(ski.expStr());
+let ski = compileSKI(n);
+console.log(expStr(ski));

@@ -1,166 +1,159 @@
-abstract class ASTNode {
-    abstract printTree(indent: number): void;
-    abstract expStr(): string;
-    abstract compileSKI(): ASTNode;
-    abstract abstractSKI(absVariable: string): ASTNode;
-    etaReduction(redVariable: string): ASTNode | null {
-        return null;
-    }
-    abstract contains(variable: string): boolean;
+interface lambdaterm {
+    type: string;
 }
 
-class EmptyNode extends ASTNode {
-    contains(variable: string): boolean {
-        throw new Error("Called contains on an empty node");
-    }
-    printTree(indent: number): void {
-        throw new Error("Called print on an empty node");
-    }
-    expStr(): string {
-        throw new Error("Called print on an empty node");
-    }
-    compileSKI(): ASTNode {
-        throw new Error("Called compile on an empty node");
-    }
-    abstractSKI(absVariable: string): ASTNode {
-        throw new Error("Called abstract on an empty node");
-    }
+interface abstraction extends lambdaterm {
+    var: Ivariable
+    term: lambdaterm;
 }
 
-function makeAbstraction(absVariable: string, node: ASTNode): ASTNode {
-    const optimized = node.etaReduction(absVariable);
-    if (optimized !== null)
-        return optimized;
-    return new AbstractionNode(absVariable, node);
+interface Ivariable extends lambdaterm {
+    name: string;
 }
 
-class ApplicationNode extends ASTNode {
-    lhs: ASTNode;
-    rhs: ASTNode;
+interface application extends lambdaterm {
+    term1: lambdaterm;
+    term2: lambdaterm;
+}
 
-    constructor(lhs: ASTNode, rhs: ASTNode) {
-        super();
-        this.lhs = lhs;
-        this.rhs = rhs;
-    }
-
-    contains(variable: string): boolean {
-        return this.lhs.contains(variable) || this.rhs.contains(variable);
-    }
-
-    override etaReduction(redVariable: string): ASTNode | null {
-        if (this.rhs instanceof VariableNode) {
-            if (this.rhs.variable === redVariable && !this.lhs.contains(redVariable)) {
-                return this.lhs;
+function abstractSKI(term: lambdaterm, absVariable: Ivariable): lambdaterm {
+    switch (term["type"]) {
+        case "var":
+            {
+                const t = term as Ivariable;
+                if (t["name"] === absVariable["name"])
+                    return combinator("I")
+                else return app(combinator("K"), t);
             }
-        }
-        return null;
-    }
+        case "app":
+            {
+                const etaReduced = etaReduction(term, absVariable);
+                if (etaReduced !== null)
+                    return compileSKI(etaReduced)
 
-    compileSKI(): ASTNode {
-        return new ApplicationNode(this.lhs.compileSKI(), this.rhs.compileSKI());
-    }
-
-    abstractSKI(absVariable: string): ASTNode {
-        let optimized = this.etaReduction(absVariable);
-        if (optimized !== null)
-            return optimized.compileSKI();
-
-        const lhs = new ApplicationNode(new CombinatorNode("S"), this.lhs.abstractSKI(absVariable));
-        const rhs = this.rhs.abstractSKI(absVariable);
-        return new ApplicationNode(lhs, rhs);
-    }
-
-    printTree(indent: number): void {
-        let indentWhiteSpace = "";
-        for (let i = 0; i < indent; i++) {
-            indentWhiteSpace += "\t";
-        }
-        console.log(indentWhiteSpace + "Application");
-        this.lhs.printTree(indent + 1);
-        this.rhs.printTree(indent + 1);
-    }
-    expStr(): string {
-        return " ( " + this.lhs.expStr() + " " + this.rhs.expStr() + " ) ";
+                const t = term as application;
+                const term1 = app(combinator("S"), abstractSKI(t.term1, absVariable));
+                const term2 = abstractSKI(t.term2, absVariable);
+                return app(term1, term2)
+            }
+        case "abs":
+            {
+                const compiled = compileSKI(term)
+                return abstractSKI(compiled, absVariable);
+            }
+        default:
+            throw new Error("invalid lambda term type");
     }
 }
 
-class AbstractionNode extends ASTNode {
-    absVariable: string;
-    node: ASTNode;
-
-    constructor(absVariable: string, node: ASTNode) {
-        super();
-        this.absVariable = absVariable;
-        this.node = node;
-    }
-    contains(variable: string): boolean {
-        return this.absVariable !== variable && this.node.contains(variable);
-    }
-
-    compileSKI(): ASTNode {
-        return this.node.abstractSKI(this.absVariable);
-    }
-
-    abstractSKI(absVariable: string): ASTNode {
-        const compiled = this.compileSKI();
-        return compiled.abstractSKI(absVariable);
-    }
-
-    printTree(indent: number): void {
-        let indentWhiteSpace = "";
-        for (let i = 0; i < indent; i++) {
-            indentWhiteSpace += "\t";
-        }
-        console.log(indentWhiteSpace + "Abstraction lambda " + this.absVariable);
-        this.node.printTree(indent + 1);
-    }
-    expStr(): string {
-        return " ( λ " + this.absVariable + " . " + this.node.expStr() + " ) ";
+function compileSKI(term: lambdaterm): lambdaterm {
+    switch (term["type"]) {
+        case "var":
+            {
+                return term
+            }
+        case "app":
+            {
+                const t = term as application;
+                return app(compileSKI(t["term1"]), compileSKI(t["term2"]));
+            }
+        case "abs":
+            {
+                const t = term as abstraction;
+                return abstractSKI(t["term"], t["var"]);
+            }
+        default:
+            throw new Error("invalid lambda term type");
     }
 }
 
-class VariableNode extends ASTNode {
-    variable: string;
 
-    constructor(variable: string) {
-        super();
-        this.variable = variable;
-    }
+function etaReduction(term: lambdaterm, redVariable: Ivariable): lambdaterm | null {
+    switch (term["type"]) {
+        case "app":
+            {
+                const t = term as application;
+                if (t.term2.type === "var") {
+                    const term2 = t.term2 as Ivariable;
+                    if (term2.name === redVariable.name && !contains(t.term1, redVariable))
+                        return t.term1;
+                }
 
-    contains(variable: string): boolean {
-        return this.variable === variable;
-    }
-
-    compileSKI(): ASTNode {
-        return this;
-    }
-
-    abstractSKI(absVariable: string): ASTNode {
-        if (absVariable === this.variable) {
-            return new CombinatorNode("I");
-        }
-        else {
-            return new ApplicationNode(new CombinatorNode("K"), this);
-        }
-    }
-
-    printTree(indent: number): void {
-        let indentWhiteSpace = "";
-        for (let i = 0; i < indent; i++) {
-            indentWhiteSpace += "\t";
-        }
-        console.log(indentWhiteSpace + this.variable);
-    }
-    expStr(): string {
-        return this.variable;
+                return null;
+            }
+        case "abs":
+        case "var":
+            return null;
+        default:
+            throw new Error("invalid lambda term type");
     }
 }
 
-class CombinatorNode extends VariableNode {
-    constructor(variable: string) {
-        super(variable)
+function contains(term: lambdaterm, variable: Ivariable): boolean {
+    switch (term["type"]) {
+        case "var":
+            {
+                const t = term as Ivariable;
+                return t.name === variable.name;
+            }
+        case "app":
+            {
+                const t = term as application;
+                return contains(t.term1, variable) || contains(t.term2, variable);
+            }
+        case "abs":
+            {
+                const t = term as abstraction;
+                return t.var.name !== variable.name && contains(t.term, variable);
+            }
+        default:
+            throw new Error("invalid lambda term type");
     }
 }
 
-export { ASTNode, AbstractionNode, ApplicationNode, VariableNode, CombinatorNode, EmptyNode, makeAbstraction };
+function variable(x: string): Ivariable {
+    return { "type": "var", "name": x };
+}
+
+function combinator(x: string) {
+    return variable(x);
+}
+
+function app(t1: lambdaterm, t2: lambdaterm): application {
+    return { "type": "app", "term1": t1, "term2": t2 };
+}
+
+function lam(x: Ivariable, term: lambdaterm): abstraction {
+    return { "type": "abs", "var": x, "term": term };
+}
+
+function expStr(term: lambdaterm): string {
+    switch (term["type"]) {
+        case "var":
+            {
+                const t = term as Ivariable;
+                return t.name;
+            }
+        case "app":
+            {
+                const t = term as application;
+                return " ( " + expStr(t.term1) + " " + expStr(t.term2) + " ) ";
+            }
+        case "abs":
+            {
+                const t = term as abstraction;
+                return " ( λ " + expStr(t.var) + " . " + expStr(t.term) + " ) ";
+            }
+        default:
+            throw new Error("invalid lambda term type");
+    }
+}
+
+function makeAbstraction(x: Ivariable, term: lambdaterm) {
+    const etaReduced = etaReduction(term, x);
+    if (etaReduced !== null)
+        return etaReduced;
+    return lam(x, term);
+}
+
+export { lambdaterm, abstraction, application, Ivariable, variable, combinator, app, expStr, makeAbstraction, compileSKI }
