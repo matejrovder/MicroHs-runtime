@@ -1,5 +1,48 @@
+
+type Var = {
+  type: 'var';
+  varN: string;
+}
+
+type App = {
+  type: 'app';
+  lhs : LT;
+  rhs : LT;
+}
+
+type Abs = {
+  type: 'abs';
+  varN: string;
+  term: LT
+}
+
+type Const = {
+  type: 'const';
+  content: string | number | char
+}
+
+type char = {
+    type: 'char';
+    content : string;
+}
+
+type LT = Var | App | Abs | Const
+
+type SKI = App | Const | Pointer
+
+// Haskell:
+//
+// data LT = Var String | App LT LT | Abs String LT
+//
+// App :: LT -> LT -> LT
+
+
 interface lambdaterm {
-    type: string;
+    type: "var" | "app" | "abs" | "cons";
+}
+
+interface SKI {
+    type: "app" | "cons" | "pointer"
 }
 
 interface abstraction extends lambdaterm {
@@ -110,6 +153,8 @@ function contains(term: lambdaterm, variable: Ivariable): boolean {
             throw new Error("invalid lambda term type");
     }
 }
+
+
 
 function variable(x: string): Ivariable {
     return { "type": "var", "name": x };

@@ -1,3 +1,8 @@
 (\ x . plus x x ) five -> S plus I five
 (\ t . (\f. t)) -> K
 (\x.(\y.x y x)) -> SSK
+
+(\s . (\z. z))   -> KI
+(\s . (\z. s z)) -> I
+(\s . (\z. s (s z)))  -> ((S ((S (KS)) K)) I)
+(\s . (\z. s (s (s z))))
