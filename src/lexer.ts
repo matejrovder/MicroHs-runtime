@@ -1,12 +1,3 @@
-const fs = require('fs')
-
-function getChar(): string {
-    let buffer = Buffer.alloc(1)
-    fs.readSync(0, buffer, 0, 1)
-    return buffer.toString('utf8')
-}
-// fs.readLine()
-
 export enum token {
     lambda = "λ",
     bracketleft = "(", // (
@@ -18,12 +9,42 @@ export enum token {
 // type token = number;
 
 export class Lexer {
+    buffer: string;
+    offset: number;
+    newlineAsEof: boolean;
     varIdentifier: string = "";
-    ch = getChar();
+    ch: string;
+
+    constructor(buffer: string, newlineAsEof: boolean = false) {
+        this.newlineAsEof = newlineAsEof;
+        this.buffer = buffer
+
+        if (this.buffer.length < 1) {
+            this.ch = "\0"
+        }
+        else {
+            this.ch = this.buffer.charAt(0)
+        }
+
+        this.offset = 1;
+    }
+
+    getChar(): string {
+        if (this.buffer.length <= this.offset) {
+            this.ch = "\0"
+        }
+        else {
+            this.ch = this.buffer.charAt(this.offset)
+            this.offset++;
+        }
+
+        return this.ch
+    }
+
 
     getToken(): token {
         while (/\s/.test(this.ch)) {
-            this.ch = getChar();
+            this.ch = this.getChar();
         }
 
         switch (this.ch) {
@@ -31,26 +52,30 @@ export class Lexer {
                 return token.eof;
             case "\\":
                 // case "λ":
-                this.ch = getChar();
+                this.ch = this.getChar();
                 return token.lambda;
 
             case "(":
-                this.ch = getChar();
+                this.ch = this.getChar();
                 return token.bracketleft;
 
             case ")":
-                this.ch = getChar();
+                this.ch = this.getChar();
                 return token.bracketright;
 
             case ".":
-                this.ch = getChar();
+                this.ch = this.getChar();
                 return token.dot;
 
+            case "\n":
+                if (this.newlineAsEof)
+                    return token.eof
+            // eslint-disable-next-line no-fallthrough
             default:
                 this.varIdentifier = ""
                 while (/[A-Za-z]/.test(this.ch)) {
                     this.varIdentifier += this.ch;
-                    this.ch = getChar();
+                    this.ch = this.getChar();
                 }
                 return token.var;
         }

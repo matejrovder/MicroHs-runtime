@@ -1,29 +1,54 @@
-interface lambdaterm {
-    type: string;
+
+type Var = {
+    type: 'var';
+    varN: string;
 }
 
-interface abstraction extends lambdaterm {
-    var: Ivariable
-    term: lambdaterm;
+type App = {
+    type: 'app';
+    lhs: LT;
+    rhs: LT;
 }
 
-interface Ivariable extends lambdaterm {
+type Abs = {
+    type: 'abs';
+    var: string;
+    term: LT
+}
+
+type Const = Comb | Str;
+
+type Comb = {
+    type: 'const'
+    ctype: 'comb';
     name: string;
 }
 
-interface application extends lambdaterm {
-    term1: lambdaterm;
-    term2: lambdaterm;
+type Str = {
+    type: 'const'
+    ctype: 'str';
+    value: string;
 }
 
-function abstractSKI(term: lambdaterm, absVariable: Ivariable): lambdaterm {
+type LT = Var | App | Abs | Const
+
+type SKI = App | Const //| Pointer
+
+// TODO: make next two functions return SKI
+// Eta reduction doesnt work well if we convert var to const, must take a look at it
+
+
+function abstractSKI(term: LT, absVariable: string): LT {
     switch (term.type) {
         case "var":
             {
-                const t = term as Ivariable;
-                if (t.name === absVariable.name)
+                if (term.varN === absVariable)
                     return combinator("I")
-                else return app(combinator("K"), t);
+                else return app(combinator("K"), term);
+            }
+        case "const":
+            {
+                return app(combinator("K"), term);
             }
         case "app":
             {
@@ -31,9 +56,8 @@ function abstractSKI(term: lambdaterm, absVariable: Ivariable): lambdaterm {
                 if (etaReduced !== null)
                     return compileSKI(etaReduced)
 
-                const t = term as application;
-                const term1 = app(combinator("S"), abstractSKI(t.term1, absVariable));
-                const term2 = abstractSKI(t.term2, absVariable);
+                const term1 = app(combinator("S"), abstractSKI(term.lhs, absVariable));
+                const term2 = abstractSKI(term.rhs, absVariable);
                 return app(term1, term2)
             }
         case "abs":
@@ -46,21 +70,24 @@ function abstractSKI(term: lambdaterm, absVariable: Ivariable): lambdaterm {
     }
 }
 
-function compileSKI(term: lambdaterm): lambdaterm {
+function compileSKI(term: LT): LT {
     switch (term.type) {
         case "var":
+        // {
+        //     return strConst(term.varN);
+        // } // THIS DOESNT WORK
+        // eslint-disable-next-line no-fallthrough
+        case "const":
             {
-                return term
+                return term;
             }
         case "app":
             {
-                const t = term as application;
-                return app(compileSKI(t["term1"]), compileSKI(t["term2"]));
+                return app(compileSKI(term.lhs), compileSKI(term.rhs));
             }
         case "abs":
             {
-                const t = term as abstraction;
-                return abstractSKI(t.term, t.var);
+                return abstractSKI(term.term, term.var);
             }
         default:
             throw new Error("invalid lambda term type");
@@ -68,92 +95,97 @@ function compileSKI(term: lambdaterm): lambdaterm {
 }
 
 
-function etaReduction(term: lambdaterm, redVariable: Ivariable): lambdaterm | null {
+function etaReduction(term: LT, redVariable: string): LT | null {
     switch (term.type) {
         case "app":
             {
-                const t = term as application;
-                if (t.term2.type === "var") {
-                    const term2 = t.term2 as Ivariable;
-                    if (term2.name === redVariable.name && !contains(t.term1, redVariable))
-                        return t.term1;
+                if (term.rhs.type === "var") {
+                    if (term.rhs.varN === redVariable && !contains(term.lhs, redVariable))
+                        return term.lhs;
                 }
 
                 return null;
             }
-        case "abs":
-        case "var":
-            return null;
         default:
-            throw new Error("invalid lambda term type");
+            return null;
     }
 }
 
-function contains(term: lambdaterm, variable: Ivariable): boolean {
+function contains(term: LT, variable: string): boolean {
     switch (term.type) {
         case "var":
             {
-                const t = term as Ivariable;
-                return t.name === variable.name;
+                return term.varN === variable;
             }
+        case "const":
+            return false;
         case "app":
             {
-                const t = term as application;
-                return contains(t.term1, variable) || contains(t.term2, variable);
+                return contains(term.lhs, variable) || contains(term.rhs, variable);
             }
         case "abs":
             {
-                const t = term as abstraction;
-                return t.var.name !== variable.name && contains(t.term, variable);
+                return term.var !== variable && contains(term.term, variable);
             }
         default:
             throw new Error("invalid lambda term type");
     }
 }
 
-function variable(x: string): Ivariable {
-    return { "type": "var", "name": x };
+function variable(x: string): Var {
+    return { "type": "var", "varN": x };
 }
 
-function combinator(x: string) {
-    return variable(x);
+function strConst(x: string): Const {
+    return { "type": "const", "ctype": "str", "value": x }
 }
 
-function app(t1: lambdaterm, t2: lambdaterm): application {
-    return { "type": "app", "term1": t1, "term2": t2 };
+function combinator(x: string): Const {
+    return { "type": "const", "ctype": "comb", "name": x }
 }
 
-function lam(x: Ivariable, term: lambdaterm): abstraction {
+function app(t1: LT, t2: LT): App {
+    return { "type": "app", "lhs": t1, "rhs": t2 };
+}
+
+function lam(x: string, term: LT): Abs {
     return { "type": "abs", "var": x, "term": term };
 }
 
-function expStr(term: lambdaterm): string {
+function expStr(term: LT): string {
     switch (term.type) {
         case "var":
             {
-                const t = term as Ivariable;
-                return t.name;
+                return term.varN;
+            }
+        case "const":
+            {
+                switch (term.ctype) {
+                    case "comb":
+                        return term.name;
+                    case "str":
+                        return term.value;
+                    default: throw new Error("Invalid ctype");
+                }
             }
         case "app":
             {
-                const t = term as application;
-                return " ( " + expStr(t.term1) + " " + expStr(t.term2) + " ) ";
+                return " ( " + expStr(term.lhs) + " " + expStr(term.rhs) + " ) ";
             }
         case "abs":
             {
-                const t = term as abstraction;
-                return " ( λ " + expStr(t.var) + " . " + expStr(t.term) + " ) ";
+                return " ( λ " + term.var + " . " + expStr(term.term) + " ) ";
             }
         default:
             throw new Error("invalid lambda term type");
     }
 }
 
-function makeAbstraction(x: Ivariable, term: lambdaterm) {
+function makeAbstraction(x: string, term: LT) {
     const etaReduced = etaReduction(term, x);
     if (etaReduced !== null)
         return etaReduced;
     return lam(x, term);
 }
 
-export { lambdaterm, abstraction, application, Ivariable, variable, combinator, app, expStr, makeAbstraction, compileSKI }
+export { LT, Var, App, Abs, Const, variable, combinator, strConst, app, expStr, makeAbstraction, compileSKI }

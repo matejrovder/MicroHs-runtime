@@ -1,13 +1,14 @@
 import { token, Lexer } from './lexer';
 // import { ASTNode, AbstractionNode, ApplicationNode, VariableNode, CombinatorNode, EmptyNode, makeAbstraction } from './ast'
-import { lambdaterm, abstraction, application, Ivariable, variable, combinator, app, expStr, makeAbstraction, compileSKI } from './ast'
+import { LT, Var, App, Abs, Const, variable, combinator, app, expStr, makeAbstraction, compileSKI } from './ast'
+// import * as y ...
 
-
-class Parser {
+export class Parser {
     currentToken: token = token.eof;
-    lexer: Lexer = new Lexer;
+    lexer: Lexer;
 
-    constructor() {
+    constructor(input: string) {
+        this.lexer = new Lexer(input)
         this.getNextToken();
     }
 
@@ -23,16 +24,16 @@ class Parser {
         this.getNextToken();
     }
 
-    matchVariable(): Ivariable {
+    matchVariable(): string {
         if (this.currentToken !== token.var) {
             throw new Error("invalid token: " + this.currentToken);
         }
         const varName = this.lexer.varIdentifier;
         this.getNextToken();
-        return variable(varName);
+        return varName;
     }
 
-    parse(lhs: lambdaterm | null = null): lambdaterm {
+    parse(lhs: LT | null = null): LT {
         switch (this.currentToken) {
             case token.bracketleft:
                 {
@@ -73,16 +74,16 @@ class Parser {
     }
 
 
-    parseBracketExpr(lhs: lambdaterm | null = null): lambdaterm {
+    parseBracketExpr(lhs: LT | null = null): LT {
         let rhs = null;
 
         switch (this.currentToken) {
             case token.lambda:
                 {
                     this.getNextToken();
-                    const varNode: Ivariable = this.matchVariable()
+                    const varN = this.matchVariable()
                     this.match(token.dot);
-                    rhs = makeAbstraction(varNode, this.parse(null));
+                    rhs = makeAbstraction(varN, this.parse(null));
                     break;
                 }
             default: {
@@ -98,11 +99,3 @@ class Parser {
     }
     // parse
 }
-
-let p = new Parser();
-let n = p.parse(null);
-// n.printTree(0);
-console.log(expStr(n));
-
-let ski = compileSKI(n);
-console.log(expStr(ski));
