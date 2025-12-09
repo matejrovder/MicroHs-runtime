@@ -32,12 +32,18 @@ type Str = {
 
 type Pointer = {
     type: 'ptr';
-    value: number;
+    value: PointedTo;
+}
+
+type PointedTo = {
+    type: 'pointedto'
+    evaluated: boolean
+    term: SKI;
 }
 
 type LT = Var | App | Abs | Const | Pointer
 
-type SKI = LT | Pointer
+type SKI = LT | Pointer 
 
 // TODO: make next two functions return SKI
 // Eta reduction doesnt work well if we convert var to const, must take a look at it
@@ -198,4 +204,4 @@ function makeAbstraction(x: string, term: LT) {
     return lam(x, term);
 }
 
-export { SKI, LT, Pointer, Var, App, Abs, Const, variable, combinator, strConst, app, expStr, makeAbstraction, compileSKI }
+export { SKI, LT, Pointer, PointedTo, Var, App, Abs, Const, variable, combinator, strConst, app, expStr, makeAbstraction, compileSKI }

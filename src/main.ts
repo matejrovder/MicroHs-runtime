@@ -1,5 +1,6 @@
-import { compileSKI, expStr } from './ast'
+import { compileSKI, expStr, SKI } from './ast'
 import { Parser } from './parser'
+import { evaluate, evalExpStr } from './eval'
 
 const fs = require('fs')
 
@@ -14,3 +15,7 @@ console.log(expStr(n));
 let ski = compileSKI(n);
 console.log(ski);
 console.log(expStr(ski));
+
+// let evaluator = new Evaluator()
+let ev: SKI = evaluate(ski)
+console.log(evalExpStr(ev))
