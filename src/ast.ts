@@ -30,12 +30,22 @@ type Str = {
     value: string;
 }
 
-type LT = Var | App | Abs | Const
+type Pointer = {
+    type: 'ptr';
+    value: number;
+}
 
-type SKI = App | Const //| Pointer
+type LT = Var | App | Abs | Const | Pointer
+
+type SKI = LT | Pointer
 
 // TODO: make next two functions return SKI
 // Eta reduction doesnt work well if we convert var to const, must take a look at it
+// Perhaps we can distinguish bounded and unbounded variables, unbounded will be converted to consts
+// and bounded vars will be kept. At the end we will then check that there are no bounded vars
+
+// Uncomment next line then
+// type SKI = App | Const | Pointer
 
 
 function abstractSKI(term: LT, absVariable: string): LT {
@@ -188,4 +198,4 @@ function makeAbstraction(x: string, term: LT) {
     return lam(x, term);
 }
 
-export { LT, Var, App, Abs, Const, variable, combinator, strConst, app, expStr, makeAbstraction, compileSKI }
+export { SKI, LT, Pointer, Var, App, Abs, Const, variable, combinator, strConst, app, expStr, makeAbstraction, compileSKI }
