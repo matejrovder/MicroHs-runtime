@@ -1,6 +1,9 @@
 import { SKI, LT, Pointer, PointedTo, Var, App, Abs, Const, variable, combinator, app, expStr, makeAbstraction, compileSKI } from './ast'
 
 function makePointer(node: SKI): Pointer {
+    if (node.type === 'ptr')
+        return node;
+
     const pointedTo: PointedTo = { 'type': 'pointedto', 'evaluated': false, term: node }
     return { 'type': "ptr", 'value': pointedTo }
 }
@@ -67,6 +70,15 @@ export function evaluate(node: SKI): SKI {
                 break;
             default:
                 throw new Error("cannot evaluate combinator: " + top.name)
+        }
+
+        while (top.type === 'ptr') {
+            if (!top.value.evaluated) {
+                top.value.term = evaluate(top.value.term)
+                top.value.evaluated = true
+            }
+
+            top = top.value.term
         }
 
         // push lhs into stack again and get content if top is ptr
