@@ -16,7 +16,7 @@ type Abs = {
     term: LT
 }
 
-type Const = Comb | Str;
+type Const = Comb | Str | Int | FuncRef;
 
 type Comb = {
     type: 'const'
@@ -28,6 +28,18 @@ type Str = {
     type: 'const'
     ctype: 'str';
     value: string;
+}
+
+type Int = {
+    type: 'const'
+    ctype: 'int';
+    value: number;
+}
+
+type FuncRef = {
+    type: 'const'
+    ctype: 'funcref';
+    name: string;
 }
 
 type Pointer = {
@@ -43,7 +55,7 @@ type PointedTo = {
 
 type LT = Var | App | Abs | Const | Pointer
 
-type SKI = LT | Pointer 
+type SKI = LT | Pointer
 
 // TODO: make next two functions return SKI
 // Eta reduction doesnt work well if we convert var to const, must take a look at it
@@ -156,6 +168,10 @@ function strConst(x: string): Const {
     return { "type": "const", "ctype": "str", "value": x }
 }
 
+function intConst(x: number): Const {
+    return { "type": "const", "ctype": "int", "value": x }
+}
+
 function combinator(x: string): Const {
     return { "type": "const", "ctype": "comb", "name": x }
 }
@@ -168,6 +184,10 @@ function lam(x: string, term: LT): Abs {
     return { "type": "abs", "var": x, "term": term };
 }
 
+function funcref(f: string): FuncRef {
+    return { "type": "const", "ctype": "funcref", "name": f };
+}
+
 function expStr(term: LT): string {
     switch (term.type) {
         case "var":
@@ -178,9 +198,12 @@ function expStr(term: LT): string {
             {
                 switch (term.ctype) {
                     case "comb":
+                    case "funcref":
                         return term.name;
                     case "str":
                         return term.value;
+                    case "int":
+                        return term.value.toString();
                     default: throw new Error("Invalid ctype");
                 }
             }
@@ -204,4 +227,4 @@ function makeAbstraction(x: string, term: LT) {
     return lam(x, term);
 }
 
-export { SKI, LT, Pointer, PointedTo, Var, App, Abs, Const, variable, combinator, strConst, app, expStr, makeAbstraction, compileSKI }
+export { SKI, LT, Pointer, PointedTo, Var, App, Abs, Const, variable, combinator, strConst, intConst, app, funcref, expStr, makeAbstraction, compileSKI }

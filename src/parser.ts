@@ -1,11 +1,12 @@
 import { token, Lexer } from './lexer';
 // import { ASTNode, AbstractionNode, ApplicationNode, VariableNode, CombinatorNode, EmptyNode, makeAbstraction } from './ast'
-import { LT, Var, App, Abs, Const, variable, combinator, app, expStr, makeAbstraction, compileSKI } from './ast'
+import { LT, Var, App, Abs, Const, variable, combinator, app, intConst, funcref, expStr, makeAbstraction, compileSKI } from './ast'
 // import * as y ...
 
 export class Parser {
     currentToken: token = token.eof;
     lexer: Lexer;
+    knownFunctions: Set<string> = new Set(["+", "-", "*", "/"]);
 
     constructor(input: string) {
         this.lexer = new Lexer(input)
@@ -45,9 +46,25 @@ export class Parser {
                         lhs = rhs
                     break;
                 }
+            case token.number: // TODO: DRY
+                {
+                    const c = intConst(this.lexer.numVal)
+                    if (lhs === null) {
+                        lhs = c;
+                    }
+                    else {
+                        lhs = app(lhs, c);
+                    }
+
+                    this.getNextToken()
+                    lhs = this.parse(lhs)
+                    break;
+                }
             case token.var:
                 {
-                    const v = variable(this.lexer.varIdentifier);
+                    let v: LT = variable(this.lexer.varIdentifier)
+                    if (this.knownFunctions.has(this.lexer.varIdentifier))
+                        v = funcref(this.lexer.varIdentifier);
                     if (lhs === null) {
                         lhs = v;
                     }

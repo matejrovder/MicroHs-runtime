@@ -4,7 +4,8 @@ export enum token {
     bracketright = ")", // )
     dot = ".",
     var = "var",
-    eof = "eof"
+    eof = "eof",
+    number = "number"
 }
 // type token = number;
 
@@ -13,6 +14,7 @@ export class Lexer {
     offset: number;
     newlineAsEof: boolean;
     varIdentifier: string = "";
+    numVal: number = 0;
     ch: string;
 
     constructor(buffer: string, newlineAsEof: boolean = false) {
@@ -67,13 +69,24 @@ export class Lexer {
                 this.ch = this.getChar();
                 return token.dot;
 
-            case "\n":
+            case "\n": // TODO: why is there fallthrough?
                 if (this.newlineAsEof)
                     return token.eof
             // eslint-disable-next-line no-fallthrough
             default:
+                if (/\d/.test(this.ch)) {
+                    this.numVal = parseInt(this.ch);
+                    this.ch = this.getChar();
+                    while (/\d/.test(this.ch)) {
+                        this.numVal *= 10;
+                        this.numVal += parseInt(this.ch);
+                        this.ch = this.getChar()
+                    }
+                    return token.number
+                }
+
                 this.varIdentifier = ""
-                while (/[A-Za-z]/.test(this.ch)) {
+                while (/[A-Za-z0-9\+\-\*\/]/.test(this.ch)) {
                     this.varIdentifier += this.ch;
                     this.ch = this.getChar();
                 }

@@ -118,9 +118,12 @@ export function evalExpStr(term: SKI): string {
             {
                 switch (term.ctype) {
                     case "comb":
+                    case "funcref":
                         return term.name;
                     case "str":
                         return term.value;
+                    case "int":
+                        return term.value.toString();
                     default: throw new Error("Invalid ctype");
                 }
             }
