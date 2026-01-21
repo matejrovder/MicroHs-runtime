@@ -1,4 +1,4 @@
-import { SKI, LT, Pointer, PointedTo, Var, App, Abs, Const, variable, combinator, app, expStr, makeAbstraction, compileSKI } from './ast'
+import { SKI, LT, Pointer, PointedTo, Var, App, Abs, Const, variable, combinator, app, expStr, makeAbstraction, compileSKI, intConst } from './ast'
 
 function makePointer(node: SKI): Pointer {
     if (node.type === 'ptr')
@@ -7,6 +7,22 @@ function makePointer(node: SKI): Pointer {
     const pointedTo: PointedTo = { 'type': 'pointedto', 'evaluated': false, term: node }
     return { 'type': "ptr", 'value': pointedTo }
 }
+
+type FuncDef = {
+    arity: number,
+    fn: (...params: SKI[]) => SKI
+}
+
+function arithmetic(x: SKI, y: SKI, fn: (p1: number, p2: number) => number): SKI {
+    if ((x.type === 'const' && x.ctype === 'int') && (y.type === 'const' && y.ctype === 'int')) {
+        return intConst(fn(x.value, y.value))
+    }
+    throw new Error("invalid types for arithmetic operation, try evaluating arguments first")
+}
+
+const functionMap: Map<string, FuncDef> = new Map([
+    ["+", { 'arity': 2, 'fn': (x, y) => arithmetic(x, y, (p1, p2) => p1 + p2) }]
+])
 
 export function evaluate(node: SKI): SKI {
     const lhs_stack: App[] = []
@@ -38,7 +54,7 @@ export function evaluate(node: SKI): SKI {
     }
 
     let loopAgain = true
-    while (loopAgain && top.type === 'const' && top.ctype === 'comb') {
+    while (loopAgain && top.type === 'const' && (top.ctype === 'comb' || top.ctype === 'funcref')) {
         switch (top.name) {
             case "S":
                 if (lhs_stack.length < 3) { loopAgain = false; break }
@@ -49,7 +65,6 @@ export function evaluate(node: SKI): SKI {
 
                     const lhs = app(f, x)
                     const rhs = app(g, x)
-                    // lhs_stack.push(app(lhs, rhs))
                     top = app(lhs, rhs)
                 }
                 break;
@@ -58,7 +73,6 @@ export function evaluate(node: SKI): SKI {
                 else {
                     const x = lhs_stack.pop()!.rhs
                     lhs_stack.pop() // y
-                    // lhs_stack.push(x)
                     top = x
                 }
                 break;
@@ -69,6 +83,19 @@ export function evaluate(node: SKI): SKI {
                 }
                 break;
             default:
+                if (top.ctype === 'funcref') {
+                    const func = functionMap.get(top.name)
+                    if (func !== undefined) {
+                        let args: SKI[] = []
+                        for (let i = 0; i < func.arity; i++) {
+                            args.push(evaluate(lhs_stack.pop()!.rhs))
+                        }
+
+                        top = func.fn(...args)
+                        continue
+                    }
+                }
+
                 throw new Error("cannot evaluate combinator: " + top.name)
         }
 
@@ -98,7 +125,8 @@ export function evaluate(node: SKI): SKI {
     }
 
     while (lhs_stack.length > 0) {
-        const rhs = evaluate(lhs_stack.pop()!.rhs) // should i evaluate here?
+        // const rhs = evaluate(lhs_stack.pop()!.rhs) // should i evaluate here?
+        const rhs = lhs_stack.pop()!.rhs // should i evaluate here?
         top = app(top, rhs)
     }
     return top;
