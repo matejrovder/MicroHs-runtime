@@ -64,8 +64,7 @@ export class Parser {
                 {
                     let v: LT = variable(this.lexer.varIdentifier)
                     if (this.lexer.varIdentifier === "Y")
-                        v = makeAbstraction("f", app(makeAbstraction("x", app(variable("f"), app(variable("x"), variable("x")))),
-                                                     makeAbstraction("x", app(variable("f"), app(variable("x"), variable("x"))))))
+                        v = combinator("Y")
                     if (this.knownFunctions.has(this.lexer.varIdentifier))
                         v = funcref(this.lexer.varIdentifier);
                     if (lhs === null) {

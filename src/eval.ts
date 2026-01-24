@@ -108,6 +108,13 @@ export function evaluate(node: SKI): SKI {
                     top = lhs_stack.pop()!.rhs
                 }
                 break;
+            case "Y":
+                if (lhs_stack.length < 1) { loopAgain = false; break }
+                else {
+                    const x = lhs_stack.pop()!.rhs
+                    top = app(x, app(combinator("Y"), x))
+                }
+                break;
             default:
                 if (top.ctype === 'funcref') {
                     const func = functionMap.get(top.name)
