@@ -6,7 +6,7 @@ import { LT, Var, App, Abs, Const, variable, combinator, app, intConst, funcref,
 export class Parser {
     currentToken: token = token.eof;
     lexer: Lexer;
-    knownFunctions: Set<string> = new Set(["+", "-", "*", "/"]);
+    knownFunctions: Set<string> = new Set(["+", "-", "*", "/", "print"]);
 
     constructor(input: string) {
         this.lexer = new Lexer(input)

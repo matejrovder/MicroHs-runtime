@@ -1,4 +1,4 @@
-import { SKI, LT, Pointer, PointedTo, Var, App, Abs, Const, variable, combinator, app, expStr, makeAbstraction, compileSKI, intConst } from './ast'
+import { SKI, LT, Pointer, PointedTo, Var, App, Abs, Const, variable, combinator, app, expStr, makeAbstraction, compileSKI, intConst, strConst } from './ast'
 
 function makePointer(node: SKI): Pointer {
     if (node.type === 'ptr')
@@ -20,8 +20,15 @@ function arithmetic(x: SKI, y: SKI, fn: (p1: number, p2: number) => number): SKI
     throw new Error("invalid types for arithmetic operation, try evaluating arguments first")
 }
 
+function printFunction(x: SKI): SKI {
+    console.log(evalExpStr(x))
+
+    return strConst("print")
+}
+
 const functionMap: Map<string, FuncDef> = new Map([
-    ["+", { 'arity': 2, 'fn': (x, y) => arithmetic(x, y, (p1, p2) => p1 + p2) }]
+    ["+", { 'arity': 2, 'fn': (x, y) => arithmetic(x, y, (p1, p2) => p1 + p2) }],
+    ["print", { 'arity': 1, 'fn': (x) => printFunction(x)}]
 ])
 
 function unwrapPointer(top: SKI, lhs_stack: App[]): SKI {
