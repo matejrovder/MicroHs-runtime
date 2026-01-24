@@ -24,11 +24,7 @@ const functionMap: Map<string, FuncDef> = new Map([
     ["+", { 'arity': 2, 'fn': (x, y) => arithmetic(x, y, (p1, p2) => p1 + p2) }]
 ])
 
-export function evaluate(node: SKI): SKI {
-    const lhs_stack: App[] = []
-
-    let top = node
-
+function unwrapPointer(top: SKI, lhs_stack: App[]): SKI {
     while (top.type === 'ptr') {
         if (!top.value.evaluated) {
             top.value.term = evaluate(top.value.term)
@@ -38,7 +34,6 @@ export function evaluate(node: SKI): SKI {
         top = top.value.term
     }
 
-    // let top_content = top
     while (top.type === 'app') {
         lhs_stack.push(top)
         top = top.lhs
@@ -52,6 +47,16 @@ export function evaluate(node: SKI): SKI {
             top = top.value.term
         }
     }
+
+    return top
+}
+
+export function evaluate(node: SKI): SKI {
+    const lhs_stack: App[] = []
+
+    let top = node
+
+    top = unwrapPointer(top, lhs_stack)
 
     let loopAgain = true
     while (loopAgain && top.type === 'const' && (top.ctype === 'comb' || top.ctype === 'funcref')) {
@@ -99,34 +104,12 @@ export function evaluate(node: SKI): SKI {
                 throw new Error("cannot evaluate combinator: " + top.name)
         }
 
-        while (top.type === 'ptr') {
-            if (!top.value.evaluated) {
-                top.value.term = evaluate(top.value.term)
-                top.value.evaluated = true
-            }
-
-            top = top.value.term
-        }
-
-        // push lhs into stack again and get content if top is ptr
-        while (top.type === 'app') {
-            lhs_stack.push(top)
-            top = top.lhs
-
-            while (top.type === 'ptr') {
-                if (!top.value.evaluated) {
-                    top.value.term = evaluate(top.value.term)
-                    top.value.evaluated = true
-                }
-
-                top = top.value.term
-            }
-        }
+        top = unwrapPointer(top, lhs_stack)
     }
 
     while (lhs_stack.length > 0) {
-        // const rhs = evaluate(lhs_stack.pop()!.rhs) // should i evaluate here?
-        const rhs = lhs_stack.pop()!.rhs // should i evaluate here?
+        // const rhs = evaluate(lhs_stack.pop()!.rhs) 
+        const rhs = lhs_stack.pop()!.rhs // not evaluating here, to keep lazy eval
         top = app(top, rhs)
     }
     return top;
