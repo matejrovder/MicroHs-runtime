@@ -6,7 +6,7 @@ import { LT, Var, App, Abs, Const, variable, combinator, app, intConst, funcref,
 export class Parser {
     currentToken: token = token.eof;
     lexer: Lexer;
-    knownFunctions: Set<string> = new Set(["+", "-", "*", "/", "print"]);
+    knownFunctions: Set<string> = new Set(["+", "-", "*", "/", "print", "="]);
 
     constructor(input: string) {
         this.lexer = new Lexer(input)
@@ -63,6 +63,9 @@ export class Parser {
             case token.var:
                 {
                     let v: LT = variable(this.lexer.varIdentifier)
+                    if (this.lexer.varIdentifier === "Y")
+                        v = makeAbstraction("f", app(makeAbstraction("x", app(variable("f"), app(variable("x"), variable("x")))),
+                                                     makeAbstraction("x", app(variable("f"), app(variable("x"), variable("x"))))))
                     if (this.knownFunctions.has(this.lexer.varIdentifier))
                         v = funcref(this.lexer.varIdentifier);
                     if (lhs === null) {

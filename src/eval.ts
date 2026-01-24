@@ -26,9 +26,23 @@ function printFunction(x: SKI): SKI {
     return strConst("print")
 }
 
+function comparison(x: SKI, y: SKI): SKI {
+       if ((x.type === 'const' && x.ctype === 'int') && (y.type === 'const' && y.ctype === 'int')) {
+        if (x.value === y.value) {
+            return combinator("K")
+        }
+        else {
+            return app(combinator("K"), combinator("I"))
+        }
+    }
+    throw new Error("invalid types for arithmetic operation, try evaluating arguments first")
+}
+
 const functionMap: Map<string, FuncDef> = new Map([
     ["+", { 'arity': 2, 'fn': (x, y) => arithmetic(x, y, (p1, p2) => p1 + p2) }],
-    ["print", { 'arity': 1, 'fn': (x) => printFunction(x)}]
+    ["-", { 'arity': 2, 'fn': (x, y) => arithmetic(x, y, (p1, p2) => p1 - p2) }],
+    ["=", { 'arity': 2, 'fn': (x, y) => comparison(x, y) }],
+    ["print", { 'arity': 1, 'fn': (x) => printFunction(x) }]
 ])
 
 function unwrapPointer(top: SKI, lhs_stack: App[]): SKI {
@@ -104,7 +118,7 @@ export function evaluate(node: SKI): SKI {
                         }
 
                         top = func.fn(...args)
-                        continue
+                        break
                     }
                 }
 
