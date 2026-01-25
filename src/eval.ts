@@ -119,6 +119,10 @@ export function evaluate(node: SKI): SKI {
                 if (top.ctype === 'funcref') {
                     const func = functionMap.get(top.name)
                     if (func !== undefined) {
+                        if (lhs_stack.length < func.arity) {
+                            loopAgain = false;
+                            break; // output will be the curried function
+                        }
                         let args: SKI[] = []
                         for (let i = 0; i < func.arity; i++) {
                             args.push(evaluate(lhs_stack.pop()!.rhs))

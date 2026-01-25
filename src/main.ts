@@ -16,6 +16,5 @@ let ski = compileSKI(n);
 console.log(ski);
 console.log(expStr(ski));
 
-// let evaluator = new Evaluator()
 let ev: SKI = evaluate(ski)
 console.log(evalExpStr(ev))
