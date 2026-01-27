@@ -11,13 +11,11 @@ export enum token {
 export class Lexer {
     buffer: string;
     offset: number;
-    newlineAsEof: boolean;
     varIdentifier: string = "";
     numVal: number = 0;
     ch: string;
 
-    constructor(buffer: string, newlineAsEof: boolean = false) {
-        this.newlineAsEof = newlineAsEof;
+    constructor(buffer: string) {
         this.buffer = buffer
 
         if (this.buffer.length < 1) {
@@ -44,11 +42,13 @@ export class Lexer {
 
 
     getToken(): token {
-        while (/\s/.test(this.ch)) {
+        while (/[\t\v\f ]/.test(this.ch)) {
             this.ch = this.getChar();
         }
 
         switch (this.ch) {
+            case "\n":
+            case "\r":
             case "\0":
                 return token.eof;
             case "\\":
