@@ -5,5 +5,8 @@
     "eslint": "^9.39.1",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.49.0"
+  },
+  "dependencies": {
+    "globals": "^17.1.0"
   }
 }
