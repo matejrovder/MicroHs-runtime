@@ -1,6 +1,6 @@
 import { compileSKI, expStr, SKI } from './ast'
 import { Parser } from './parser'
-import { evaluate, evalExpStr } from './eval'
+import { evaluate, evalExpStr, stepEval } from './eval'
 
 const fs = require('fs')
 
@@ -18,3 +18,13 @@ console.log(expStr(ski));
 
 let ev: SKI = evaluate(ski)
 console.log(evalExpStr(ev))
+
+
+console.log("-----Stepping through------")
+// let evaluator = new Evaluator()
+let [step, next] = stepEval(ski)
+while (next) {
+    [step, next] = stepEval(step)
+    console.log(evalExpStr(step))
+}
+console.log("---------------------------")

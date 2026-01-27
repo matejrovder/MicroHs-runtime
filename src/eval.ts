@@ -45,6 +45,107 @@ const functionMap: Map<string, FuncDef> = new Map([
     ["print", { 'arity': 1, 'fn': (x) => printFunction(x) }]
 ])
 
+export function stepEval(node: SKI): [SKI, boolean] {
+    const lhs_stack: App[] = []
+
+    let top = node
+    let combSuccess = true
+    let change = true
+
+    while (top.type === 'app') {
+        lhs_stack.push(top)
+        top = top.lhs
+    }
+
+    if (top.type === 'ptr') {
+        if (!top.value.evaluated) {
+            top.value.term = evaluate(top.value.term)
+            top.value.evaluated = true
+        }
+
+        top = top.value.term
+    }
+    else if (top.type === 'const' && (top.ctype === 'comb' || top.ctype === 'funcref')) {
+        switch (top.name) {
+            case "S":
+                if (lhs_stack.length < 3) { combSuccess = false; break }
+                else {
+                    const f = lhs_stack.pop()!.rhs
+                    const g = lhs_stack.pop()!.rhs
+                    const x = makePointer(lhs_stack.pop()!.rhs)
+
+                    const lhs = app(f, x)
+                    const rhs = app(g, x)
+                    top = app(lhs, rhs)
+                }
+                break;
+            case "K":
+                if (lhs_stack.length < 2) { combSuccess = false; break }
+                else {
+                    const x = lhs_stack.pop()!.rhs
+                    lhs_stack.pop() // y
+                    top = x
+                }
+                break;
+            case "Y":
+                if (lhs_stack.length < 1) { combSuccess = false; break }
+                else {
+                    const x = lhs_stack.pop()!.rhs
+                    top = app(x, app(combinator("Y"), x))
+                }
+                break;
+            case "I":
+                if (lhs_stack.length < 1) { combSuccess = false; break }
+                else {
+                    top = lhs_stack.pop()!.rhs
+                }
+                break;
+            default:
+                if (top.ctype === 'funcref' && functionMap.has(top.name)) {
+                    const func = functionMap.get(top.name)!
+                    if (func.arity > lhs_stack.length) {
+                        combSuccess = false
+                        break;
+                    }
+                    const args: SKI[] = []
+                    let readyToRun = true
+                    for (let i = 0; i < func.arity; i++) {
+                        const arg = lhs_stack.pop()!.rhs
+                        const [arg_eval, arg_change] = stepEval(arg)
+                        args.push(arg_eval)
+                        if (arg_change) {
+                            readyToRun = false
+                            break
+                        }
+                    }
+                    if (readyToRun) {
+                        top = func.fn(...args)
+                    }
+                    else {
+                        while (args.length > 0) {
+                            lhs_stack.push(app(strConst("empty"), args.pop()!))
+                        }
+                    }
+                }
+                else {
+                    throw new Error("cannot evaluate combinator: " + top.name)
+                }
+        }
+        if (combSuccess === false) {
+            change = false
+        }
+    }
+    else {
+        change = false
+    }
+
+    while (lhs_stack.length > 0) {
+        const rhs = lhs_stack.pop()!.rhs // not evaluating here, to keep lazy eval
+        top = app(top, rhs)
+    }
+    return [top, change];
+}
+
 function unwrapPointer(top: SKI, lhs_stack: App[]): SKI {
     while (top.type === 'ptr') {
         if (!top.value.evaluated) {
