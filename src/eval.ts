@@ -27,7 +27,7 @@ function printFunction(x: SKI): SKI {
 }
 
 function comparison(x: SKI, y: SKI): SKI {
-       if ((x.type === 'const' && x.ctype === 'int') && (y.type === 'const' && y.ctype === 'int')) {
+    if ((x.type === 'const' && x.ctype === 'int') && (y.type === 'const' && y.ctype === 'int')) {
         if (x.value === y.value) {
             return combinator("K")
         }
@@ -41,8 +41,10 @@ function comparison(x: SKI, y: SKI): SKI {
 const functionMap: Map<string, FuncDef> = new Map([
     ["+", { 'arity': 2, 'fn': (x, y) => arithmetic(x, y, (p1, p2) => p1 + p2) }],
     ["-", { 'arity': 2, 'fn': (x, y) => arithmetic(x, y, (p1, p2) => p1 - p2) }],
+    ["*", { 'arity': 2, 'fn': (x, y) => arithmetic(x, y, (p1, p2) => p1 * p2) }],
     ["=", { 'arity': 2, 'fn': (x, y) => comparison(x, y) }],
-    ["print", { 'arity': 1, 'fn': (x) => printFunction(x) }]
+    ["print", { 'arity': 1, 'fn': (x) => printFunction(x) }],
+    ["double", { 'arity': 1, 'fn': (x) => arithmetic(x, intConst(2), (p1, p2) => p1 * p2) }]
 ])
 
 export function stepEval(node: SKI): [SKI, boolean] {
@@ -224,7 +226,7 @@ export function evaluate(node: SKI): SKI {
                             loopAgain = false;
                             break; // output will be the curried function
                         }
-                        let args: SKI[] = []
+                        const args: SKI[] = []
                         for (let i = 0; i < func.arity; i++) {
                             args.push(evaluate(lhs_stack.pop()!.rhs))
                         }
