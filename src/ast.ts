@@ -65,6 +65,29 @@ type SKI = LT | Pointer
 // Uncomment next line then
 // type SKI = App | Const | Pointer
 
+function isComb(term: SKI, name: string) {
+    return term.type === 'const' && term.ctype === 'comb' && term.name === name
+}
+
+function optimizeCombS(term1: SKI, term2: SKI): SKI {
+    /**
+     * @brief Optimizes expression S term1' term2'
+     */
+
+    if (term1.type === 'app' && term2.type === 'app') {
+        const t1l = term1.lhs, t1r = term1.rhs
+        const t2l = term2.lhs, t2r = term2.rhs
+
+        if (isComb(t1l, "K") && isComb(t2l, "K"))
+            return app(combinator("K"), app(t1r, t2r))
+    }
+
+    else if (term1.type === 'app' && isComb(term1.lhs, "K") && isComb(term2, "I")) {
+        return term1.rhs
+    }
+
+    return app(app(combinator("S"), term1), term2);
+}
 
 function abstractSKI(term: LT, absVariable: string): LT {
     switch (term.type) {
@@ -84,9 +107,9 @@ function abstractSKI(term: LT, absVariable: string): LT {
                 if (etaReduced !== null)
                     return compileSKI(etaReduced)
 
-                const term1 = app(combinator("S"), abstractSKI(term.lhs, absVariable));
+                const term1 = abstractSKI(term.lhs, absVariable);
                 const term2 = abstractSKI(term.rhs, absVariable);
-                return app(term1, term2)
+                return optimizeCombS(term1, term2)
             }
         case "abs":
             {
