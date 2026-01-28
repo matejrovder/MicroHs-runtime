@@ -1,4 +1,4 @@
-import { SKI, LT, Pointer, PointedTo, Var, App, Abs, Const, variable, combinator, app, expStr, makeAbstraction, compileSKI, intConst, strConst } from './ast'
+import { SKI, LT, Pointer, PointedTo, Var, App, Abs, Const, variable, combinator, app, expStr, makeAbstraction, compileSKI, intConst, strConst, combY, combI, combK, combS } from './ast'
 
 function makePointer(node: SKI): Pointer {
     if (node.type === 'ptr')
@@ -29,10 +29,10 @@ function printFunction(x: SKI): SKI {
 function comparison(x: SKI, y: SKI): SKI {
     if ((x.type === 'const' && x.ctype === 'int') && (y.type === 'const' && y.ctype === 'int')) {
         if (x.value === y.value) {
-            return combinator("K")
+            return combK
         }
         else {
-            return app(combinator("K"), combinator("I"))
+            return app(combK, combI)
         }
     }
     throw new Error("invalid types for arithmetic operation, try evaluating arguments first")
@@ -93,7 +93,7 @@ export function stepEval(node: SKI): [SKI, boolean] {
                 if (lhs_stack.length < 1) { combSuccess = false; break }
                 else {
                     const x = lhs_stack.pop()!.rhs
-                    top = app(x, app(combinator("Y"), x))
+                    top = app(x, app(combY, x))
                 }
                 break;
             case "I":
@@ -184,61 +184,61 @@ export function evaluate(node: SKI): SKI {
 
     let loopAgain = true
     while (loopAgain && top.type === 'const' && (top.ctype === 'comb' || top.ctype === 'funcref')) {
-        switch (top.name) {
-            case "S":
-                if (lhs_stack.length < 3) { loopAgain = false; break }
-                else {
-                    const f = lhs_stack.pop()!.rhs
-                    const g = lhs_stack.pop()!.rhs
-                    const x = makePointer(lhs_stack.pop()!.rhs)
+        if (top.ctype === 'comb') {
+            switch (top) {
+                case combS:
+                    if (lhs_stack.length < 3) { loopAgain = false; break }
+                    else {
+                        const f = lhs_stack.pop()!.rhs
+                        const g = lhs_stack.pop()!.rhs
+                        const x = makePointer(lhs_stack.pop()!.rhs)
 
-                    const lhs = app(f, x)
-                    const rhs = app(g, x)
-                    top = app(lhs, rhs)
-                }
-                break;
-            case "K":
-                if (lhs_stack.length < 2) { loopAgain = false; break }
-                else {
-                    const x = lhs_stack.pop()!.rhs
-                    lhs_stack.pop() // y
-                    top = x
-                }
-                break;
-            case "I":
-                if (lhs_stack.length < 1) { loopAgain = false; break }
-                else {
-                    top = lhs_stack.pop()!.rhs
-                }
-                break;
-            case "Y":
-                if (lhs_stack.length < 1) { loopAgain = false; break }
-                else {
-                    const x = lhs_stack.pop()!.rhs
-                    top = app(x, app(combinator("Y"), x))
-                }
-                break;
-            default:
-                if (top.ctype === 'funcref') {
-                    const func = functionMap.get(top.name)
-                    if (func !== undefined) {
-                        if (lhs_stack.length < func.arity) {
-                            loopAgain = false;
-                            break; // output will be the curried function
-                        }
-                        const args: SKI[] = []
-                        for (let i = 0; i < func.arity; i++) {
-                            args.push(evaluate(lhs_stack.pop()!.rhs))
-                        }
-
-                        top = func.fn(...args)
-                        break
+                        const lhs = app(f, x)
+                        const rhs = app(g, x)
+                        top = app(lhs, rhs)
                     }
+                    break;
+                case combK:
+                    if (lhs_stack.length < 2) { loopAgain = false; break }
+                    else {
+                        const x = lhs_stack.pop()!.rhs
+                        lhs_stack.pop() // y
+                        top = x
+                    }
+                    break;
+                case combI:
+                    if (lhs_stack.length < 1) { loopAgain = false; break }
+                    else {
+                        top = lhs_stack.pop()!.rhs
+                    }
+                    break;
+                case combY:
+                    if (lhs_stack.length < 1) { loopAgain = false; break }
+                    else {
+                        const x = lhs_stack.pop()!.rhs
+                        top = app(x, app(combY, x))
+                    }
+                    break;
+                default:
+                    throw new Error("cannot evaluate combinator: " + top.name)
+            }
+        }
+        else if (top.ctype === 'funcref') {
+            const func = functionMap.get(top.name)
+            if (func !== undefined) {
+                if (lhs_stack.length < func.arity) {
+                    loopAgain = false;
+                    continue; // output will be the curried function
+                }
+                const args: SKI[] = []
+                for (let i = 0; i < func.arity; i++) {
+                    args.push(evaluate(lhs_stack.pop()!.rhs))
                 }
 
-                throw new Error("cannot evaluate combinator: " + top.name)
+                top = func.fn(...args)
+            }
         }
-
+        else { break }
         top = unwrapPointer(top, lhs_stack)
     }
 

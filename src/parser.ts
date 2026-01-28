@@ -1,6 +1,6 @@
 import { token, Lexer } from './lexer';
 // import { ASTNode, AbstractionNode, ApplicationNode, VariableNode, CombinatorNode, EmptyNode, makeAbstraction } from './ast'
-import { LT, Var, App, Abs, Const, variable, combinator, app, intConst, funcref, expStr, makeAbstraction, compileSKI } from './ast'
+import { LT, Var, App, Abs, Const, variable, combinator, app, intConst, funcref, expStr, makeAbstraction, compileSKI, combY } from './ast'
 // import * as y ...
 
 export class Parser {
@@ -64,7 +64,7 @@ export class Parser {
                 {
                     let v: LT = variable(this.lexer.varIdentifier)
                     if (this.lexer.varIdentifier === "Y")
-                        v = combinator("Y")
+                        v = combY
                     if (this.knownFunctions.has(this.lexer.varIdentifier))
                         v = funcref(this.lexer.varIdentifier);
                     if (lhs === null) {

@@ -69,6 +69,11 @@ function isComb(term: SKI, name: string) {
     return term.type === 'const' && term.ctype === 'comb' && term.name === name
 }
 
+export const combS: Comb = { "type": "const", "ctype": "comb", "name": "S" }
+export const combK: Comb = { "type": "const", "ctype": "comb", "name": "K" }
+export const combI: Comb = { "type": "const", "ctype": "comb", "name": "I" }
+export const combY: Comb = { "type": "const", "ctype": "comb", "name": "Y" }
+
 function optimizeCombS(term1: SKI, term2: SKI): SKI {
     /**
      * @brief Optimizes expression S term1' term2'
@@ -78,15 +83,15 @@ function optimizeCombS(term1: SKI, term2: SKI): SKI {
         const t1l = term1.lhs, t1r = term1.rhs
         const t2l = term2.lhs, t2r = term2.rhs
 
-        if (isComb(t1l, "K") && isComb(t2l, "K"))
-            return app(combinator("K"), app(t1r, t2r))
+        if (t1l === combK && t2l === combK)
+            return app(combK, app(t1r, t2r))
     }
 
-    else if (term1.type === 'app' && isComb(term1.lhs, "K") && isComb(term2, "I")) {
+    else if (term1.type === 'app' && term1.lhs === combK && term2 === combI) {
         return term1.rhs
     }
 
-    return app(app(combinator("S"), term1), term2);
+    return app(app(combS, term1), term2);
 }
 
 function abstractSKI(term: LT, absVariable: string): LT {
@@ -94,12 +99,12 @@ function abstractSKI(term: LT, absVariable: string): LT {
         case "var":
             {
                 if (term.varN === absVariable)
-                    return combinator("I")
-                else return app(combinator("K"), term);
+                    return combI
+                else return app(combK, term);
             }
         case "const":
             {
-                return app(combinator("K"), term);
+                return app(combK, term);
             }
         case "app":
             {
