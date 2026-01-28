@@ -75,7 +75,7 @@ function evalCombExpr(top: Comb, lhs_stack: App[]): [SKI, boolean] {
         case "Y":
             if (lhs_stack.length < 1) { return [top, false] }
             else {
-                const x = lhs_stack.pop()!.rhs
+                const x = makePointer(lhs_stack.pop()!.rhs)
                 return [app(x, app(combinator("Y"), x)), true]
             }
         case "B":
