@@ -250,4 +250,4 @@ function makeAbstraction(x: string, term: LT) {
     return lam(x, term);
 }
 
-export { SKI, LT, Pointer, PointedTo, Var, App, Abs, Const, variable, combinator, strConst, intConst, app, funcref, expStr, makeAbstraction, compileSKI }
+export { SKI, LT, Pointer, PointedTo, Var, App, Abs, Const, Comb, variable, combinator, strConst, intConst, app, funcref, expStr, makeAbstraction, compileSKI }
