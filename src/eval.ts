@@ -13,7 +13,7 @@ type FuncDef = {
     fn: (...params: SKI[]) => SKI
 }
 
-type CombDef = {
+export type CombDef = {
     arity: number,
     fn: (a: SKI[]) => SKI
 }
@@ -34,10 +34,10 @@ function printFunction(x: SKI): SKI {
 function comparison(x: SKI, y: SKI): SKI {
     if ((x.type === 'const' && x.ctype === 'int') && (y.type === 'const' && y.ctype === 'int')) {
         if (x.value === y.value) {
-            return combinator("K")
+            return combKConst
         }
         else {
-            return app(combinator("K"), combinator("I"))
+            return app(combKConst, combIConst)
         }
     }
     throw new Error("invalid types for arithmetic operation, try evaluating arguments first")
@@ -52,22 +52,35 @@ const functionMap: Map<string, FuncDef> = new Map([
     ["double", { 'arity': 1, 'fn': (x) => arithmetic(x, intConst(2), (p1, p2) => p1 * p2) }]
 ])
 
-const combMap: Map<string, CombDef> = new Map([
-    ["S", {
+// const combMap: Map<string, CombDef> = new Map([
+//     ["S", {
+//         'arity': 3, 'fn': (a) => {
+//             const x = makePointer(a[2])
+//             return app(app(a[0], x), app(a[1], x))
+//         }
+//     }],
+//     ["K", { 'arity': 2, 'fn': (a) => a[0] }],
+//     ["I", { 'arity': 1, 'fn': (a) => a[0] }],
+//     ["Y", { 'arity': 1, 'fn': (a) => app(a[0], app(combinator("Y"), a[0])) }],
+//     // ["B", { 'arity': 3, 'fn': (a) => app(a[0], app(a[1], a[2])) }],
+//     // ["C", { 'arity': 3, 'fn': (a) => app(app(a[0], a[2]), a[1]) }]
+// ])
+// TODO: this is very slow, optimize for example by returning pointer from combinator(name)
+
+export const combS: CombDef = {
         'arity': 3, 'fn': (a) => {
             const x = makePointer(a[2])
             return app(app(a[0], x), app(a[1], x))
         }
-    }],
-    ["K", { 'arity': 2, 'fn': (a) => a[0] }],
-    ["I", { 'arity': 1, 'fn': (a) => a[0] }],
-    ["Y", { 'arity': 1, 'fn': (a) => app(a[0], app(combinator("Y"), a[0])) }],
-    // ["B", { 'arity': 3, 'fn': (a) => app(a[0], app(a[1], a[2])) }],
-    // ["C", { 'arity': 3, 'fn': (a) => app(app(a[0], a[2]), a[1]) }]
-])
-// TODO: this is very slow, optimize for example by returning pointer from combinator(name)
+    }
+export const combK: CombDef = { 'arity': 2, 'fn': (a) => a[0] }
+export const combI: CombDef = { 'arity': 1, 'fn': (a) => a[0] }
+export const combY: CombDef = { 'arity': 1, 'fn': (a) => app(a[0], app(combYConst, a[0])) }
 
-
+export const combSConst: Const = { "type": "const", "ctype": "comb", "name": "S", "combObj": combS }
+export const combKConst: Const = { "type": "const", "ctype": "comb", "name": "K", "combObj": combK }
+export const combIConst: Const = { "type": "const", "ctype": "comb", "name": "I", "combObj": combI }
+export const combYConst: Const = { "type": "const", "ctype": "comb", "name": "Y", "combObj": combY }
 
 export function stepEval(node: SKI): [SKI, boolean] {
     const lhs_stack: App[] = []
@@ -115,7 +128,7 @@ export function stepEval(node: SKI): [SKI, boolean] {
                 if (lhs_stack.length < 1) { combSuccess = false; break }
                 else {
                     const x = lhs_stack.pop()!.rhs
-                    top = app(x, app(combinator("Y"), x))
+                    top = app(x, app(combYConst, x))
                 }
                 break;
             case "I":
@@ -206,8 +219,8 @@ export function evaluate(node: SKI): SKI {
 
     let loopAgain = true
     while (loopAgain && top.type === 'const' && (top.ctype === 'comb' || top.ctype === 'funcref')) {
-        if (combMap.has(top.name)) {
-            const comb = combMap.get(top.name)!
+        if (top.ctype === 'comb' && top.combObj !== undefined) {
+            const comb = top.combObj
             if (lhs_stack.length < comb.arity) {
                 loopAgain = false
             }

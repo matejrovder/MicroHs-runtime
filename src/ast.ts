@@ -1,3 +1,4 @@
+import { CombDef, combI, combIConst, combK, combKConst, combS, combSConst, combY, combYConst } from "./eval";
 
 type Var = {
     type: 'var';
@@ -22,6 +23,7 @@ type Comb = {
     type: 'const'
     ctype: 'comb';
     name: string;
+    combObj: CombDef;
 }
 
 type Str = {
@@ -79,14 +81,14 @@ function optimizeCombS(term1: SKI, term2: SKI): SKI {
         const t2l = term2.lhs, t2r = term2.rhs
 
         if (isComb(t1l, "K") && isComb(t2l, "K"))
-            return app(combinator("K"), app(t1r, t2r))
+            return app(combKConst, app(t1r, t2r))
     }
 
     else if (term1.type === 'app' && isComb(term1.lhs, "K") && isComb(term2, "I")) {
         return term1.rhs
     }
 
-    return app(app(combinator("S"), term1), term2);
+    return app(app(combSConst, term1), term2);
 }
 
 function abstractSKI(term: LT, absVariable: string): LT {
@@ -94,12 +96,12 @@ function abstractSKI(term: LT, absVariable: string): LT {
         case "var":
             {
                 if (term.varN === absVariable)
-                    return combinator("I")
-                else return app(combinator("K"), term);
+                    return combIConst
+                else return app(combKConst, term);
             }
         case "const":
             {
-                return app(combinator("K"), term);
+                return app(combKConst, term);
             }
         case "app":
             {
@@ -196,7 +198,18 @@ function intConst(x: number): Const {
 }
 
 function combinator(x: string): Const {
-    return { "type": "const", "ctype": "comb", "name": x }
+    switch (x) {
+        case "S":
+            return combSConst
+        case "K":
+            return combKConst
+        case "I":
+            return combIConst
+        case "Y":
+            return combYConst
+        default:
+            throw new Error("unknown combinator: " + x)
+    }
 }
 
 function app(t1: LT, t2: LT): App {
