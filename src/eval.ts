@@ -78,6 +78,54 @@ function evalCombExpr(top: Comb, lhs_stack: App[]): [SKI, boolean] {
                 const x = lhs_stack.pop()!.rhs
                 return [app(x, app(combinator("Y"), x)), true]
             }
+        case "B":
+            if (lhs_stack.length < 3) { return [top, false] }
+            else {
+                const f = lhs_stack.pop()!.rhs
+                const g = lhs_stack.pop()!.rhs
+                const x = lhs_stack.pop()!.rhs
+
+                return [app(f, app(g, x)), true]
+            }
+        case "C":
+            if (lhs_stack.length < 3) { return [top, false] }
+            else {
+                const f = lhs_stack.pop()!.rhs
+                const g = lhs_stack.pop()!.rhs
+                const x = lhs_stack.pop()!.rhs
+
+                return [app(app(f, x), g), true]
+            }
+        case "S'":
+            if (lhs_stack.length < 4) { return [top, false] }
+            else {
+                const c = lhs_stack.pop()!.rhs
+                const f = lhs_stack.pop()!.rhs
+                const g = lhs_stack.pop()!.rhs
+                const x = makePointer(lhs_stack.pop()!.rhs)
+
+                return [app(app(c, app(f, x)), app(g, x)), true]
+            }
+        case "B*":
+            if (lhs_stack.length < 4) { return [top, false] }
+            else {
+                const c = lhs_stack.pop()!.rhs
+                const f = lhs_stack.pop()!.rhs
+                const g = lhs_stack.pop()!.rhs
+                const x = lhs_stack.pop()!.rhs
+
+                return [app(c, app(f, app(g, x))), true]
+            }
+        case "C'":
+            if (lhs_stack.length < 4) { return [top, false] }
+            else {
+                const c = lhs_stack.pop()!.rhs
+                const f = lhs_stack.pop()!.rhs
+                const g = lhs_stack.pop()!.rhs
+                const x = lhs_stack.pop()!.rhs
+
+                return [app(app(c, app(f, x)), g), true]
+            }
         default:
             throw new Error("cannot evaluate combinator: " + top.name)
     }

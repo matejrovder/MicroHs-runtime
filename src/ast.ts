@@ -82,8 +82,30 @@ function optimizeCombS(term1: SKI, term2: SKI): SKI {
             return app(combinator("K"), app(t1r, t2r))
     }
 
-    else if (term1.type === 'app' && isComb(term1.lhs, "K") && isComb(term2, "I")) {
+    if (term1.type === 'app' && isComb(term1.lhs, "K") && isComb(term2, "I")) {
         return term1.rhs
+    }
+
+    if (term1.type === 'app' && isComb(term1.lhs, "K") && term2.type === 'app' &&
+        term2.lhs.type === 'app' && isComb(term2.lhs.lhs, "B")) {
+        return app(app(app(combinator("B*"), term1.rhs), term2.lhs.rhs), term2.rhs)
+    }
+
+    if (term1.type === 'app' && isComb(term1.lhs, "K")) {
+        return app(app(combinator("B"), term1.rhs), term2)
+    }
+
+    if (term1.type === 'app' && term1.lhs.type === 'app' && isComb(term1.lhs.lhs, "B") && term2.type === 'app' &&
+        isComb(term2.lhs, "K")) {
+        return app(app(app(combinator("C'"), term1.lhs.rhs), term1.rhs), term2.rhs)
+    }
+
+    if (term2.type === 'app' && isComb(term2.lhs, "K")) {
+        return app(app(combinator("C"), term1), term2.rhs)
+    }
+
+    if (term1.type === 'app' && term1.lhs.type === 'app' && isComb(term1.lhs.lhs, "B")) {
+        return app(app(app(combinator("S'"), term1.lhs.rhs), term1.rhs), term2)
     }
 
     return app(app(combinator("S"), term1), term2);
