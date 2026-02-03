@@ -106,7 +106,7 @@ function evalCombExpr(top: Comb, lhs_stack: App[]): [SKI, boolean] {
 
                 return [app(app(c, app(f, x)), app(g, x)), true]
             }
-        case "B*":
+        case "B*": // not used by MicroHs
             if (lhs_stack.length < 4) { return [top, false] }
             else {
                 const c = lhs_stack.pop()!.rhs
@@ -125,6 +125,107 @@ function evalCombExpr(top: Comb, lhs_stack: App[]): [SKI, boolean] {
                 const x = lhs_stack.pop()!.rhs
 
                 return [app(app(c, app(f, x)), g), true]
+            }
+        case "B'":
+            if (lhs_stack.length < 4) { return [top, false] }
+            else {
+                const x = lhs_stack.pop()!.rhs
+                const y = lhs_stack.pop()!.rhs
+                const z = lhs_stack.pop()!.rhs
+                const w = lhs_stack.pop()!.rhs
+
+                return [app(app(x, y), app(z, w)), true]
+            }
+        case "A":
+            if (lhs_stack.length < 2) { return [top, false] }
+            else {
+                lhs_stack.pop() // x 
+                const y = lhs_stack.pop()!.rhs
+                return [y, true]
+            }
+        case "U":
+            if (lhs_stack.length < 2) { return [top, false] }
+            else {
+                const x = lhs_stack.pop()!.rhs
+                const y = lhs_stack.pop()!.rhs
+                return [app(y, x), true]
+            }
+        case "Z":
+            if (lhs_stack.length < 3) { return [top, false] }
+            else {
+                const x = lhs_stack.pop()!.rhs
+                const y = lhs_stack.pop()!.rhs
+                lhs_stack.pop() // z
+
+                return [app(x, y), true]
+            }
+        case "P":
+            if (lhs_stack.length < 3) { return [top, false] }
+            else {
+                const x = lhs_stack.pop()!.rhs
+                const y = lhs_stack.pop()!.rhs
+                const z = lhs_stack.pop()!.rhs
+
+                return [app(app(z, x), y), true]
+            }
+        case "R":
+            if (lhs_stack.length < 3) { return [top, false] }
+            else {
+                const x = lhs_stack.pop()!.rhs
+                const y = lhs_stack.pop()!.rhs
+                const z = lhs_stack.pop()!.rhs
+
+                return [app(app(y, z), x), true]
+            }
+        case "O":
+            if (lhs_stack.length < 4) { return [top, false] }
+            else {
+                const x = lhs_stack.pop()!.rhs
+                const y = lhs_stack.pop()!.rhs
+                lhs_stack.pop() // z
+                const w = lhs_stack.pop()!.rhs
+
+                return [app(app(w, x), y), true]
+            }
+        case "K2":
+            if (lhs_stack.length < 3) { return [top, false] }
+            else {
+                const x = lhs_stack.pop()!.rhs
+                lhs_stack.pop() // y
+                lhs_stack.pop() // z
+
+                return [x, true]
+            }
+        case "K3":
+            if (lhs_stack.length < 4) { return [top, false] }
+            else {
+                const x = lhs_stack.pop()!.rhs
+                lhs_stack.pop() // y
+                lhs_stack.pop() // z
+                lhs_stack.pop() // w
+
+                return [x, true]
+            }
+        case "K4":
+            if (lhs_stack.length < 5) { return [top, false] }
+            else {
+                const x = lhs_stack.pop()!.rhs
+                lhs_stack.pop() // y
+                lhs_stack.pop() // z
+                lhs_stack.pop() // w
+                lhs_stack.pop() // v
+
+                return [x, true]
+            }
+        case "C'B":
+            if (lhs_stack.length < 4) { return [top, false] }
+            else {
+                const x = lhs_stack.pop()!.rhs
+                const y = lhs_stack.pop()!.rhs
+                const z = lhs_stack.pop()!.rhs
+                const w = lhs_stack.pop()!.rhs
+
+                return [app(app(x, z), app(y, w)), true]
             }
         default:
             throw new Error("cannot evaluate combinator: " + top.name)
