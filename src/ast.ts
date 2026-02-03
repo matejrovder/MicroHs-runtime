@@ -53,9 +53,14 @@ type PointedTo = {
     term: SKI;
 }
 
-type LT = Var | App | Abs | Const | Pointer
+type NumberedRef = {
+    type: 'numref'
+    value: number
+}
 
-type SKI = LT | Pointer
+type LT = Var | App | Abs | Const | Pointer | NumberedRef
+
+type SKI = LT | Pointer | NumberedRef
 
 // TODO: make next two functions return SKI
 // Eta reduction doesnt work well if we convert var to const, must take a look at it

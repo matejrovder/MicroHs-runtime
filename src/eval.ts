@@ -1,6 +1,6 @@
 import { SKI, LT, Pointer, PointedTo, Var, App, Abs, Const, variable, combinator, app, expStr, makeAbstraction, compileSKI, intConst, strConst, Comb } from './ast'
 
-function makePointer(node: SKI): Pointer {
+export function makePointer(node: SKI): Pointer {
     if (node.type === 'ptr')
         return node;
 
