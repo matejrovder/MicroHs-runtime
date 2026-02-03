@@ -201,30 +201,24 @@ export function stepEval(node: SKI): [SKI, boolean] {
 }
 
 function unwrapPointer(top: SKI, lhs_stack: App[]): SKI {
-    while (top.type === 'ptr') {
-        if (!top.value.evaluated) {
-            top.value.term = evaluate(top.value.term)
-            top.value.evaluated = true
-        }
+    while (true) {
+        switch (top.type) {
+            case 'ptr':
+                if (!top.value.evaluated) {
+                    top.value.term = evaluate(top.value.term)
+                    top.value.evaluated = true
+                }
 
-        top = top.value.term
-    }
-
-    while (top.type === 'app') {
-        lhs_stack.push(top)
-        top = top.lhs
-
-        while (top.type === 'ptr') {
-            if (!top.value.evaluated) {
-                top.value.term = evaluate(top.value.term)
-                top.value.evaluated = true
-            }
-
-            top = top.value.term
+                top = top.value.term
+                break;
+            case 'app':
+                lhs_stack.push(top)
+                top = top.lhs
+                break;
+            default:
+                return top
         }
     }
-
-    return top
 }
 
 export function evaluate(node: SKI): SKI {
