@@ -26,9 +26,9 @@ function printFunction(x: SKI): SKI {
     return strConst("print")
 }
 
-function comparison(x: SKI, y: SKI): SKI {
+function comparison(x: SKI, y: SKI, cmp: (p1: number, p2: number) => boolean): SKI {
     if ((x.type === 'const' && x.ctype === 'int') && (y.type === 'const' && y.ctype === 'int')) {
-        if (x.value === y.value) {
+        if (cmp(x.value, y.value)) {
             return combinator("K")
         }
         else {
@@ -42,7 +42,18 @@ const functionMap: Map<string, FuncDef> = new Map([
     ["+", { 'arity': 2, 'fn': (x, y) => arithmetic(x, y, (p1, p2) => p1 + p2) }],
     ["-", { 'arity': 2, 'fn': (x, y) => arithmetic(x, y, (p1, p2) => p1 - p2) }],
     ["*", { 'arity': 2, 'fn': (x, y) => arithmetic(x, y, (p1, p2) => p1 * p2) }],
-    ["=", { 'arity': 2, 'fn': (x, y) => comparison(x, y) }],
+    ["=", { 'arity': 2, 'fn': (x, y) => comparison(x, y, (p1, p2) => p1 == p2) }],
+    ["==", { 'arity': 2, 'fn': (x, y) => comparison(x, y, (p1, p2) => p1 == p2) }],
+    ["/=", { 'arity': 2, 'fn': (x, y) => comparison(x, y, (p1, p2) => p1 != p2) }],
+    ["<=", { 'arity': 2, 'fn': (x, y) => comparison(x, y, (p1, p2) => p1 <= p2) }],
+    ["<", { 'arity': 2, 'fn': (x, y) => comparison(x, y, (p1, p2) => p1 < p2) }],
+    [">=", { 'arity': 2, 'fn': (x, y) => comparison(x, y, (p1, p2) => p1 >= p2) }],
+    [">", { 'arity': 2, 'fn': (x, y) => comparison(x, y, (p1, p2) => p1 > p2) }],
+    ["u==", { 'arity': 2, 'fn': (x, y) => comparison(x, y, (p1, p2) => p1 == p2) }],
+    ["u<=", { 'arity': 2, 'fn': (x, y) => comparison(x, y, (p1, p2) => p1 <= p2) }],
+    ["u<", { 'arity': 2, 'fn': (x, y) => comparison(x, y, (p1, p2) => p1 < p2) }],
+    ["u>=", { 'arity': 2, 'fn': (x, y) => comparison(x, y, (p1, p2) => p1 >= p2) }],
+    ["u>", { 'arity': 2, 'fn': (x, y) => comparison(x, y, (p1, p2) => p1 > p2) }],
     ["print", { 'arity': 1, 'fn': (x) => printFunction(x) }],
     ["double", { 'arity': 1, 'fn': (x) => arithmetic(x, intConst(2), (p1, p2) => p1 * p2) }]
 ])
