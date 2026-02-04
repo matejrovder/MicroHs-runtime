@@ -67,9 +67,15 @@ export class MhsParser {
                     }
                     break
                 }
-                case mhsToken.ptrdef:
-                    pointers.set(this.lexer.numVal, makePointer(stack[stack.length - 1]))
+                case mhsToken.ptrdef: {
+                    if (stack.length < 1)
+                        throw new Error("Shared expression creation with empty stack")
+                    const top = stack.pop()!
+                    const ptr = makePointer(top)
+                    stack.push(ptr)
+                    pointers.set(this.lexer.numVal, ptr)
                     break
+                }
                 case mhsToken.endbrace: {
                     if (stack.length < 1)
                         throw new Error("Empty stack at program end '}'")
