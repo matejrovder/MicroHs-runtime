@@ -47,6 +47,88 @@ const functionMap: Map<string, FuncDef> = new Map([
     ["double", { 'arity': 1, 'fn': (x) => arithmetic(x, intConst(2), (p1, p2) => p1 * p2) }]
 ])
 
+export class Evaluator {
+    pointers: Map<number, Pointer>
+
+    constructor(pointers: Map<number, Pointer> = new Map()) {
+        this.pointers = pointers
+    }
+
+    unwrapPointer(top: SKI, lhs_stack: App[]): SKI {
+        while (true) {
+            switch (top.type) {
+                case 'ptr':
+                    if (!top.value.evaluated) {
+                        top.value.term = this.evaluate(top.value.term)
+                        top.value.evaluated = true
+                    }
+
+                    top = top.value.term
+                    break;
+                case 'app':
+                    lhs_stack.push(top)
+                    top = top.lhs
+                    break;
+                case 'numref': {
+                    const ref = this.pointers.get(top.value)
+                    if (ref == undefined)
+                        throw new Error("Invalid shared expression reference: _" + top.value)
+                    else
+                        top = ref
+                    break;
+                }
+                default:
+                    return top
+            }
+        }
+    }
+
+    // TODO: try to optimize using pointer reversal
+    evaluate(node: SKI): SKI {
+        const lhs_stack: App[] = []
+
+        let top = node
+
+        top = this.unwrapPointer(top, lhs_stack)
+
+        let loopAgain = true
+        while (loopAgain && top.type === 'const' && (top.ctype === 'comb' || top.ctype === 'funcref')) {
+            if (top.ctype === 'comb') {
+                [top, loopAgain] = evalCombExpr(top, lhs_stack)
+            }
+            else if (top.ctype === 'funcref') {
+                const func = functionMap.get(top.name)
+                if (func !== undefined) {
+                    if (lhs_stack.length < func.arity) {
+                        loopAgain = false;
+                        // output will be the curried function
+                    }
+                    else {
+                        const args: SKI[] = []
+                        for (let i = 0; i < func.arity; i++) {
+                            args.push(this.evaluate(lhs_stack.pop()!.rhs))
+                        }
+
+                        top = func.fn(...args)
+                    }
+                }
+                else
+                    throw new Error("unknown function " + top.name)
+            }
+            else break
+            top = this.unwrapPointer(top, lhs_stack)
+        }
+
+        while (lhs_stack.length > 0) {
+            // const rhs = evaluate(lhs_stack.pop()!.rhs) 
+            const rhs = lhs_stack.pop()!.rhs // not evaluating here, to keep lazy eval
+            top = app(top, rhs)
+        }
+        return top;
+    }
+}
+
+
 function evalCombExpr(top: Comb, lhs_stack: App[]): [SKI, boolean] {
     switch (top.name) {
         case "S":
@@ -301,67 +383,6 @@ export function stepEval(node: SKI): [SKI, boolean] {
     return [top, change];
 }
 
-function unwrapPointer(top: SKI, lhs_stack: App[]): SKI {
-    while (true) {
-        switch (top.type) {
-            case 'ptr':
-                if (!top.value.evaluated) {
-                    top.value.term = evaluate(top.value.term)
-                    top.value.evaluated = true
-                }
-
-                top = top.value.term
-                break;
-            case 'app':
-                lhs_stack.push(top)
-                top = top.lhs
-                break;
-            default:
-                return top
-        }
-    }
-}
-
-export function evaluate(node: SKI): SKI {
-    const lhs_stack: App[] = []
-
-    let top = node
-
-    top = unwrapPointer(top, lhs_stack)
-
-    let loopAgain = true
-    while (loopAgain && top.type === 'const' && (top.ctype === 'comb' || top.ctype === 'funcref')) {
-        if (top.ctype === 'comb') {
-            [top, loopAgain] = evalCombExpr(top, lhs_stack)
-        }
-        else if (top.ctype === 'funcref') {
-            const func = functionMap.get(top.name)
-            if (func !== undefined) {
-                if (lhs_stack.length < func.arity) {
-                    loopAgain = false;
-                    // output will be the curried function
-                }
-                else {
-                    const args: SKI[] = []
-                    for (let i = 0; i < func.arity; i++) {
-                        args.push(evaluate(lhs_stack.pop()!.rhs))
-                    }
-
-                    top = func.fn(...args)
-                }
-            }
-        }
-        else break
-        top = unwrapPointer(top, lhs_stack)
-    }
-
-    while (lhs_stack.length > 0) {
-        // const rhs = evaluate(lhs_stack.pop()!.rhs) 
-        const rhs = lhs_stack.pop()!.rhs // not evaluating here, to keep lazy eval
-        top = app(top, rhs)
-    }
-    return top;
-}
 
 export function evalExpStr(term: SKI): string {
     switch (term.type) {
