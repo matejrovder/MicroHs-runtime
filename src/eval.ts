@@ -397,6 +397,8 @@ export function stepEval(node: SKI): [SKI, boolean] {
 
 export function evalExpStr(term: SKI): string {
     switch (term.type) {
+        case "numref":
+            return "_" + term.value
         case "ptr": {
             const evaluated = term.value.evaluated ? "T" : "F"
             return "ptr,e=" + evaluated + "( " + evalExpStr(term.value.term) + " )"
