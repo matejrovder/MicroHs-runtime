@@ -21,7 +21,7 @@ function arithmetic(x: SKI, y: SKI, fn: (p1: number, p2: number) => number): SKI
 }
 
 function printFunction(x: SKI): SKI {
-    console.log(evalExpStr(x))
+    console.log("OUTPUT: " + evalExpStr(x) + "\n")
 
     return strConst("print")
 }
@@ -425,7 +425,10 @@ export function evalExpStr(term: SKI): string {
                     case "funcref":
                         return term.name;
                     case "str":
-                        return term.value;
+                        if (term.value.length > 20)
+                            return "string"
+                        return "string \"" + term.value + "\""
+                    // return term.value;
                     case "int":
                         return term.value.toString();
                     default: throw new Error("Invalid ctype");
