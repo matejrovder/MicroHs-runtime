@@ -337,6 +337,7 @@ function evalCombExpr(top: Comb, lhs_stack: App[]): [SKI, boolean] {
 
 export function stepEval(node: SKI): [SKI, boolean] {
     const lhs_stack: App[] = []
+    const evaluator = new Evaluator()
 
     let top = node
     let combSuccess = true
@@ -349,7 +350,7 @@ export function stepEval(node: SKI): [SKI, boolean] {
 
     if (top.type === 'ptr') {
         if (!top.value.evaluated) {
-            top.value.term = evaluate(top.value.term)
+            top.value.term = evaluator.evaluate(top.value.term)
             top.value.evaluated = true
         }
 
