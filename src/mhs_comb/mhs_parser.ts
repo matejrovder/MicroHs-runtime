@@ -2,7 +2,6 @@ import { app, combinator, funcref, intConst, Pointer, SKI, strConst } from "../a
 import { evalExpStr, Evaluator, makePointer } from "../eval";
 import { MhsLexer, mhsToken } from "./mhs_lexer";
 
-
 export class MhsParser {
     currentToken: mhsToken
     lexer: MhsLexer
@@ -92,4 +91,3 @@ export class MhsParser {
         }
     }
 }
-

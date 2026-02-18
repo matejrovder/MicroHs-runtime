@@ -180,6 +180,7 @@ function evalCombExpr(top: Comb, lhs_stack: App[]): [SKI, boolean] {
 
                 return [app(f, app(g, x)), true]
             }
+        case "IO.>>=":
         case "C":
             if (lhs_stack.length < 3) { return [top, false] }
             else {
@@ -319,6 +320,15 @@ function evalCombExpr(top: Comb, lhs_stack: App[]): [SKI, boolean] {
                 const w = lhs_stack.pop()!.rhs
 
                 return [app(app(x, z), app(y, w)), true]
+            }
+        case "IO.>>":
+            // IO.>> x y = IO.>>= x (K y)
+            if (lhs_stack.length < 2) { return [top, false] }
+            else {
+                const x = lhs_stack.pop()!.rhs
+                const y = lhs_stack.pop()!.rhs
+
+                return [app(app(combinator("IO.>>="), x), app(combinator("K"), y)), true]
             }
         default:
             throw new Error("cannot evaluate combinator: " + top.name)

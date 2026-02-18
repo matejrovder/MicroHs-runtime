@@ -30,7 +30,9 @@ const combinators: Set<string> = new Set([
     "K2",
     "K3",
     "K4",
-    "C'B"
+    "C'B",
+    "IO.>>",
+    "IO.>>=",
 ])
 
 export class MhsLexer {
