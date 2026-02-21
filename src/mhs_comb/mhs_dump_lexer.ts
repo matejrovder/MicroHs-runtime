@@ -90,9 +90,52 @@ export class MhsDumpLexer {
     private readFnName(): void {
         this.stringVal = ""
         while (/[^\s()]/.test(this.ch)) {
+            if (this.ch === "$") {
+                this.stringVal += this.ch
+                this.ch = this.getChar();
+
+                if (this.ch === "(") {
+                    this.stringVal += this.ch
+                    this.ch = this.getChar();
+                    this.readBracketedName()
+                }
+                continue
+            }
+
             this.stringVal += this.ch;
             this.ch = this.getChar();
         }
+    }
+
+    private readBracketedName(): void {
+        // after $(
+        let depth = 0
+        while (/[^\s]/.test(this.ch)) {
+            if (this.ch === "(")
+                depth++
+            else if (this.ch === ")") {
+                if (depth === 0) {
+                    this.stringVal += this.ch;
+                    this.ch = this.getChar();
+                    return
+                }
+                depth--
+            }
+
+            this.stringVal += this.ch;
+            this.ch = this.getChar();
+        }
+        // if (this.ch === ")") {
+        //     this.stringVal += this.ch
+        //     this.ch = this.getChar();
+        // }
+        // else if (this.ch === "(") {
+        //     this.stringVal += this.ch
+        //     this.ch = this.getChar();
+        //     this.readBracketedName()
+        // }
+        // else
+        throw new Error("unexpected space after $( before ) while parsing")
     }
 
     private readString(): void {
@@ -143,8 +186,11 @@ export class MhsDumpLexer {
                 return mhsDumpToken.string
 
             case "=":
-                this.ch = this.getChar()
-                return mhsDumpToken.equals
+                this.readFnName()
+                if (this.stringVal === "=")
+                    return mhsDumpToken.equals
+                else
+                    return mhsDumpToken.named
 
             default:
                 this.readFnName()

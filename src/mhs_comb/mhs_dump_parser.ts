@@ -18,9 +18,9 @@ export class MhsDumpParser {
         return this.currentToken;
     }
 
-    private match(token: mhsDumpToken, err: string | undefined = undefined): void {
+    private match(token: mhsDumpToken, err: string | null = null): void {
         if (this.currentToken !== token)
-            throw new Error(err === undefined ? "unexpected token" : err)
+            throw new Error(err === null ? "unexpected token " + this.currentToken + " ,was expecting " + token : err)
         this.currentToken = this.getNextToken()
     }
 
@@ -42,7 +42,7 @@ export class MhsDumpParser {
             const name = this.lexer.stringVal
             this.match(mhsDumpToken.equals)
             const expr = this.parseExpr()
-            if (expr === undefined)
+            if (expr === null)
                 throw new Error("empty or invalid expression after =")
 
             expressions.set(name, makePointer(expr))
@@ -55,20 +55,20 @@ export class MhsDumpParser {
         return [main, expressions]
     }
 
-    parseBracketExpr(lhs: SKI | undefined = undefined): SKI | undefined {
-        const rhs = this.parseExpr(undefined)
-        if (rhs === undefined)
-            return lhs
-        else if (lhs !== undefined)
+    parseBracketExpr(lhs: SKI | null = null): SKI | null {
+        const rhs = this.parseExpr(null)
+        if (rhs === null) { /* empty */ }
+        else if (lhs !== null)
             lhs = app(lhs, rhs)
         else
             lhs = rhs
 
         this.match(mhsDumpToken.bracketright, "unexpected token while parsing, was expecting )")
+        return lhs
     }
 
-    parseExpr(lhs: SKI | undefined = undefined): SKI | undefined {
-        let rhs: SKI | undefined
+    parseExpr(lhs: SKI | null = null): SKI | null {
+        let rhs: SKI | null
         while (true) {
             switch (this.currentToken) {
                 case mhsDumpToken.comb:
@@ -96,25 +96,24 @@ export class MhsDumpParser {
                         break;
                     }
                 case mhsDumpToken.eof: {
-                    rhs = undefined
+                    rhs = null
                     throw new Error("Unexpected EOF while parsing")
                 }
                 case mhsDumpToken.bracketleft:
                     this.getNextToken();
-                    rhs = this.parseBracketExpr(undefined);
+                    rhs = this.parseBracketExpr(null);
                     break
                 case mhsDumpToken.newline:
                 case mhsDumpToken.bracketright:
-                    this.getNextToken();
-                    rhs = undefined
+                    rhs = null
                     break
                 case mhsDumpToken.equals:
                     throw new Error("Unexpected = token")
             }
 
-            if (rhs === undefined)
+            if (rhs === null)
                 return lhs
-            else if (lhs !== undefined)
+            else if (lhs !== null)
                 lhs = app(lhs, rhs)
             else
                 lhs = rhs
@@ -122,3 +121,20 @@ export class MhsDumpParser {
     }
 }
 
+const fs = require('fs')
+
+const input = fs.readFileSync('/dev/stdin').toString()
+
+// const lex = new MhsDumpLexer(input)
+// let token = lex.getToken()
+// while (token !== mhsDumpToken.eof) {
+//     console.log(token)
+//     token = lex.getToken()
+// }
+
+
+const [main, expressions] = new MhsDumpParser(input).parse()
+// const evaluator = new Evaluator(pointers)
+// const ev = evaluator.evaluate(top)
+// console.log("RESULT:")
+// console.log(evalExpStr(ev))
