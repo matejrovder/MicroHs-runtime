@@ -10,6 +10,7 @@ export function makePointer(node: SKI): Pointer {
 
 type FuncDef = {
     arity: number,
+    strict: boolean, // whether function needs all arguments evaluated before call
     fn: (...params: SKI[]) => SKI
 }
 
@@ -38,25 +39,6 @@ function comparison(x: SKI, y: SKI, cmp: (p1: number, p2: number) => boolean): S
     throw new Error("invalid types for arithmetic operation, try evaluating arguments first")
 }
 
-const functionMap: Map<string, FuncDef> = new Map([
-    ["+", { 'arity': 2, 'fn': (x, y) => arithmetic(x, y, (p1, p2) => p1 + p2) }],
-    ["-", { 'arity': 2, 'fn': (x, y) => arithmetic(x, y, (p1, p2) => p1 - p2) }],
-    ["*", { 'arity': 2, 'fn': (x, y) => arithmetic(x, y, (p1, p2) => p1 * p2) }],
-    ["=", { 'arity': 2, 'fn': (x, y) => comparison(x, y, (p1, p2) => p1 == p2) }],
-    ["==", { 'arity': 2, 'fn': (x, y) => comparison(x, y, (p1, p2) => p1 == p2) }],
-    ["/=", { 'arity': 2, 'fn': (x, y) => comparison(x, y, (p1, p2) => p1 != p2) }],
-    ["<=", { 'arity': 2, 'fn': (x, y) => comparison(x, y, (p1, p2) => p1 <= p2) }],
-    ["<", { 'arity': 2, 'fn': (x, y) => comparison(x, y, (p1, p2) => p1 < p2) }],
-    [">=", { 'arity': 2, 'fn': (x, y) => comparison(x, y, (p1, p2) => p1 >= p2) }],
-    [">", { 'arity': 2, 'fn': (x, y) => comparison(x, y, (p1, p2) => p1 > p2) }],
-    ["u==", { 'arity': 2, 'fn': (x, y) => comparison(x, y, (p1, p2) => p1 == p2) }],
-    ["u<=", { 'arity': 2, 'fn': (x, y) => comparison(x, y, (p1, p2) => p1 <= p2) }],
-    ["u<", { 'arity': 2, 'fn': (x, y) => comparison(x, y, (p1, p2) => p1 < p2) }],
-    ["u>=", { 'arity': 2, 'fn': (x, y) => comparison(x, y, (p1, p2) => p1 >= p2) }],
-    ["u>", { 'arity': 2, 'fn': (x, y) => comparison(x, y, (p1, p2) => p1 > p2) }],
-    ["print", { 'arity': 1, 'fn': (x) => printFunction(x) }],
-    ["double", { 'arity': 1, 'fn': (x) => arithmetic(x, intConst(2), (p1, p2) => p1 * p2) }]
-])
 
 export class Evaluator {
     pointers: Map<number, Pointer>
@@ -64,6 +46,26 @@ export class Evaluator {
     constructor(pointers: Map<number, Pointer> = new Map()) {
         this.pointers = pointers
     }
+
+    functionMap: Map<string, FuncDef> = new Map([
+        ["+", { 'arity': 2, 'strict': true, 'fn': (x, y) => arithmetic(x, y, (p1, p2) => p1 + p2) }],
+        ["-", { 'arity': 2, 'strict': true, 'fn': (x, y) => arithmetic(x, y, (p1, p2) => p1 - p2) }],
+        ["*", { 'arity': 2, 'strict': true, 'fn': (x, y) => arithmetic(x, y, (p1, p2) => p1 * p2) }],
+        ["=", { 'arity': 2, 'strict': true, 'fn': (x, y) => comparison(x, y, (p1, p2) => p1 == p2) }],
+        ["==", { 'arity': 2, 'strict': true, 'fn': (x, y) => comparison(x, y, (p1, p2) => p1 == p2) }],
+        ["/=", { 'arity': 2, 'strict': true, 'fn': (x, y) => comparison(x, y, (p1, p2) => p1 != p2) }],
+        ["<=", { 'arity': 2, 'strict': true, 'fn': (x, y) => comparison(x, y, (p1, p2) => p1 <= p2) }],
+        ["<", { 'arity': 2, 'strict': true, 'fn': (x, y) => comparison(x, y, (p1, p2) => p1 < p2) }],
+        [">=", { 'arity': 2, 'strict': true, 'fn': (x, y) => comparison(x, y, (p1, p2) => p1 >= p2) }],
+        [">", { 'arity': 2, 'strict': true, 'fn': (x, y) => comparison(x, y, (p1, p2) => p1 > p2) }],
+        ["u==", { 'arity': 2, 'strict': true, 'fn': (x, y) => comparison(x, y, (p1, p2) => p1 == p2) }],
+        ["u<=", { 'arity': 2, 'strict': true, 'fn': (x, y) => comparison(x, y, (p1, p2) => p1 <= p2) }],
+        ["u<", { 'arity': 2, 'strict': true, 'fn': (x, y) => comparison(x, y, (p1, p2) => p1 < p2) }],
+        ["u>=", { 'arity': 2, 'strict': true, 'fn': (x, y) => comparison(x, y, (p1, p2) => p1 >= p2) }],
+        ["u>", { 'arity': 2, 'strict': true, 'fn': (x, y) => comparison(x, y, (p1, p2) => p1 > p2) }],
+        ["print", { 'arity': 1, 'strict': true, 'fn': (x) => printFunction(x) }],
+        ["double", { 'arity': 1, 'strict': true, 'fn': (x) => arithmetic(x, intConst(2), (p1, p2) => p1 * p2) }],
+    ])
 
     unwrapPointer(top: SKI, lhs_stack: App[]): SKI {
         while (true) {
@@ -108,7 +110,7 @@ export class Evaluator {
                 [top, loopAgain] = evalCombExpr(top, lhs_stack)
             }
             else if (top.ctype === 'funcref') {
-                const func = functionMap.get(top.name)
+                const func = this.functionMap.get(top.name)
                 if (func !== undefined) {
                     if (lhs_stack.length < func.arity) {
                         loopAgain = false;
@@ -116,9 +118,14 @@ export class Evaluator {
                     }
                     else {
                         const args: SKI[] = []
-                        for (let i = 0; i < func.arity; i++) {
-                            args.push(this.evaluate(lhs_stack.pop()!.rhs))
-                        }
+                        if (func.strict)
+                            for (let i = 0; i < func.arity; i++) {
+                                args.push(this.evaluate(lhs_stack.pop()!.rhs))
+                            }
+                        else
+                            for (let i = 0; i < func.arity; i++) {
+                                args.push(lhs_stack.pop()!.rhs)
+                            }
 
                         top = func.fn(...args)
                     }
