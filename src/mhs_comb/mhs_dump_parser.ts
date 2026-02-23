@@ -38,8 +38,10 @@ export class MhsDumpParser {
         this.match(mhsDumpToken.newline)
 
         while (this.currentToken !== mhsDumpToken.eof) {
-            this.match(mhsDumpToken.named)
+            this.checkToken(mhsDumpToken.named)
+
             const name = this.lexer.stringVal
+            this.currentToken = this.getNextToken()
             this.match(mhsDumpToken.equals)
             const expr = this.parseExpr()
             if (expr === null)
