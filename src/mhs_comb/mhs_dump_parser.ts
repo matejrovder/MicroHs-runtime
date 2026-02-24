@@ -1,5 +1,6 @@
 import { app, combinator, funcref, intConst, Pointer, SKI, strConst } from "../ast";
-import { evalExpStr, Evaluator, makePointer } from "../eval";
+// import { evalExpStr, Evaluator, makePointer } from "../eval";
+import { evalExpStr, Evaluator, makePointer } from "../mhs_dump_eval";
 import { MhsDumpLexer, mhsDumpToken } from "./mhs_dump_lexer";
 import { MhsLexer } from "./mhs_lexer";
 
@@ -24,6 +25,11 @@ export class MhsDumpParser {
         this.currentToken = this.getNextToken()
     }
 
+    private checkToken(token: mhsDumpToken, err: string | null = null): void {
+        if (this.currentToken !== token)
+            throw new Error(err === null ? "unexpected token " + this.currentToken + " ,was expecting " + token : err)
+    }
+
     parse(): [SKI, Map<string, Pointer>] {
         /**
          * @return main function and expression map
@@ -38,8 +44,13 @@ export class MhsDumpParser {
         this.match(mhsDumpToken.newline)
 
         while (this.currentToken !== mhsDumpToken.eof) {
-            this.checkToken(mhsDumpToken.named)
+            // this.checkToken(mhsDumpToken.named)
 
+            if (this.currentToken === mhsDumpToken.comb) // to allow custom definitions such as System.IO.Base.Print = ...
+            { /* empty */ }
+            else {
+                this.checkToken(mhsDumpToken.named)
+            }
             const name = this.lexer.stringVal
             this.currentToken = this.getNextToken()
             this.match(mhsDumpToken.equals)
