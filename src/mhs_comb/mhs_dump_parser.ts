@@ -147,7 +147,7 @@ const input = fs.readFileSync('/dev/stdin').toString()
 
 
 const [main, expressions] = new MhsDumpParser(input).parse()
-// const evaluator = new Evaluator(pointers)
-// const ev = evaluator.evaluate(top)
-// console.log("RESULT:")
-// console.log(evalExpStr(ev))
+const evaluator = new Evaluator(expressions)
+const ev = evaluator.evaluate(main)
+console.log("RESULT:")
+console.log(evalExpStr(ev))

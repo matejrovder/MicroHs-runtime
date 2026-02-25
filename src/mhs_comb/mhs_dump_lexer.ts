@@ -32,6 +32,9 @@ const combinators: Set<string> = new Set([
     "C'B",
     // "IO.>>",
     // "IO.>>=",
+    "System.IO.Base.print",
+    "Data.Num.fromInteger",
+    "Data.Integer_Type._intToInteger"
 ])
 
 export class MhsDumpLexer {
