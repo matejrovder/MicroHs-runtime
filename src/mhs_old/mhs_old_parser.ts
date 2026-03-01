@@ -1,5 +1,5 @@
 import { app, combinator, funcref, intConst, Pointer, SKI, strConst } from "../ast";
-import { evalExpStr, Evaluator, makePointer } from "../eval";
+import { evalExpStr, Evaluator, makePointer } from "../mhs_old_eval";
 // import { evalExpStr, Evaluator, makePointer } from "../mhs_dump_eval";
 import { MhsOldLexer, mhsOldToken } from "./mhs_old_lexer";
 // import { MhsLexer } from "./mhs_lexer";
