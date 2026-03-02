@@ -21,16 +21,11 @@ const combinators: Set<string> = new Set([
     "B'",
     "C'",
     "A",
-    "U",
     "Y",
-    "Z",
     "P",
-    "R",
     "O",
-    "K2",
-    "K3",
-    "K4",
-    "C'B",
+    "T",
+    "BK"
     // "IO.>>",
     // "IO.>>=",
 ])
