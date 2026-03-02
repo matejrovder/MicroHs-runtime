@@ -60,6 +60,21 @@ function strConst(x: string): Const {
     return { "type": "const", "ctype": "str", "value": x }
 }
 
+function mkCons(x: LT, xs: LT): App {
+    return app(app(combinator("O"), x), xs)
+    // O - cons combinator
+}
+
+function mkString(x: string): App | Const {
+    let res: Const | App = combinator("K") // false/nil combinator
+    for (let i = x.length - 1; i >= 0; i--) {
+        const ord = intConst(x.charCodeAt(i))
+        res = mkCons(ord, res)
+    }
+
+    return res
+}
+
 function intConst(x: number): Const {
     return { "type": "const", "ctype": "int", "value": x }
 }
@@ -109,4 +124,4 @@ function expStr(term: LT | GraphN): string {
     }
 }
 
-export { GraphN, Pointer, PointedTo, Var, App, Const, Comb, Str, Int, FuncRef, combinator, strConst, intConst, app, funcref, expStr }
+export { GraphN, Pointer, PointedTo, Var, App, Const, Comb, Str, Int, FuncRef, combinator, strConst, mkString, intConst, app, funcref, expStr }
