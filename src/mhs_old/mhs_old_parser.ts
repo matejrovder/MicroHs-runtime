@@ -1,4 +1,4 @@
-import { app, combinator, funcref, intConst, Pointer, SKI, strConst } from "../ast";
+import { app, combinator, funcref, intConst, mkString, Pointer, SKI, strConst } from "../ast";
 import { evalExpStr, Evaluator, makePointer } from "../mhs_old_eval";
 // import { evalExpStr, Evaluator, makePointer } from "../mhs_dump_eval";
 import { MhsOldLexer, mhsOldToken } from "./mhs_old_lexer";
@@ -72,7 +72,7 @@ export class MhsOldParser {
                     }
                 case mhsOldToken.string:
                     {
-                        rhs = strConst(this.lexer.stringVal)
+                        rhs = mkString(this.lexer.stringVal)
                         this.getNextToken();
                         break;
                     }
@@ -141,8 +141,9 @@ const input = fs.readFileSync('/dev/stdin').toString()
 
 
 const [main, pointers] = new MhsOldParser(input).parse()
-console.log(evalExpStr(main))
+// console.log(evalExpStr(main))
 const evaluator = new Evaluator(pointers)
+console.log("EVALUATION/OUTPUT:")
 const ev = evaluator.evaluate(main)
 console.log("RESULT:")
 console.log(evalExpStr(ev))

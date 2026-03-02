@@ -22,9 +22,18 @@ function arithmetic(x: SKI, y: SKI, fn: (p1: number, p2: number) => number): SKI
 }
 
 function printFunction(x: SKI): SKI {
-    console.log("OUTPUT: " + evalExpStr(x) + "\n")
+    console.log(evalExpStr(x) + "\n")
 
     return strConst("print")
+}
+
+function putCharFromInt(x: SKI): SKI {
+    if (x.type === 'const' && x.ctype === 'int') {
+        process.stdout.write(String.fromCodePoint(x.value))
+        return strConst("putChar")
+    }
+    else
+        throw new Error("invalid node type")
 }
 
 function comparison(x: SKI, y: SKI, cmp: (p1: number, p2: number) => boolean): SKI {
@@ -32,11 +41,9 @@ function comparison(x: SKI, y: SKI, cmp: (p1: number, p2: number) => boolean): S
         if (cmp(x.value, y.value)) {
             // true and false values are flipped???
             return combinator("A")
-            // return combinator("K")
         }
         else {
             return combinator("K")
-            // return app(combinator("K"), combinator("I"))
         }
     }
     throw new Error("invalid types for arithmetic operation, try evaluating arguments first")
@@ -69,7 +76,10 @@ export class Evaluator {
         ["u>", { 'arity': 2, 'strict': true, 'fn': (x, y) => comparison(x, y, (p1, p2) => p1 > p2) }],
         ["print", { 'arity': 1, 'strict': true, 'fn': (x) => printFunction(x) }],
         ["double", { 'arity': 1, 'strict': true, 'fn': (x) => arithmetic(x, intConst(2), (p1, p2) => p1 * p2) }],
-        ["IO.print", { 'arity': 2, 'strict': false, 'fn': (_, y) => { y = this.evaluate(y); return printFunction(y) } }]
+        ["IO.print", { 'arity': 2, 'strict': false, 'fn': (_, y) => { y = this.evaluate(y); return printFunction(y) } }],
+        ["IO.>>", { 'arity': 2, 'strict': false, 'fn': (x, y) => { this.evaluate(x); return this.evaluate(y) } }],
+        ["IO.putChar", { 'arity': 2, 'strict': false, 'fn': (_, y) => { y = this.evaluate(y); return putCharFromInt(y) } }],
+        ["IO.return", { 'arity': 1, 'strict': false, 'fn': (x) => { return x } }],
     ])
 
     unwrapPointer(top: SKI, lhs_stack: App[]): SKI {
