@@ -1,5 +1,5 @@
 import { etaReduction, LT, ltapp } from './lambda_types'
-import { app, GraphN, combinator, strConst } from '../ast'
+import { app, GraphN, combinator, strConst } from '../types'
 
 // Compilation of LT to SKI is implemented by allowing SKI types in LT AST as output from _compileSKI and abstractSKI,
 // then this AST is recursively converted to SKI by _ensureSKI.

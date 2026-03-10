@@ -1,6 +1,6 @@
 import { token, Lexer } from './lexer';
 import { LT, ltapp, makeAbstraction, variable } from "./lambda_types";
-import { combinator, funcref, intConst } from "../ast";
+import { combinator, funcref, intConst } from "../types";
 // import { ASTNode, AbstractionNode, ApplicationNode, VariableNode, CombinatorNode, EmptyNode, makeAbstraction } from '../ast'
 
 // import * as y ...

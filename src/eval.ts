@@ -1,4 +1,4 @@
-import { GraphN, Pointer, PointedTo, App, combinator, app, intConst, strConst, Comb } from './ast'
+import { GraphN, Pointer, PointedTo, App, combinator, app, intConst, strConst, Comb } from './types'
 
 export function makePointer(node: GraphN): Pointer {
     if (node.type === 'ptr')

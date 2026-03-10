@@ -1,4 +1,4 @@
-import { Str, Int, FuncRef, GraphN } from '../ast'
+import { Str, Int, FuncRef, GraphN } from '../types'
 
 type LT = Var | LTApp | Abs | LTConst | GraphN
 type LTConst = | Str | Int | FuncRef;

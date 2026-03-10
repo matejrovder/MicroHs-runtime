@@ -1,4 +1,4 @@
-import { app, combinator, funcref, intConst, Pointer, GraphN, strConst } from "../ast";
+import { app, combinator, funcref, intConst, Pointer, GraphN, strConst } from "../types";
 import { evalExpStr, Evaluator, makePointer } from "../eval";
 import { MhsLexer, mhsToken } from "./mhs_lexer";
 

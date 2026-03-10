@@ -1,5 +1,5 @@
 import { Parser } from './parser'
-import { expStr } from "../ast";
+import { expStr } from "../types";
 import { compileSKI } from "./ski_compile";
 
 function test(name: string, input: string, output: string) {

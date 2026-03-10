@@ -109,4 +109,4 @@ function expStr(term: LT | GraphN): string {
     }
 }
 
-export { GraphN, LT, Pointer, PointedTo, Var, App, Const, Comb, Str, Int, FuncRef, combinator, strConst, intConst, app, funcref, expStr }
+export { GraphN, Pointer, PointedTo, Var, App, Const, Comb, Str, Int, FuncRef, combinator, strConst, intConst, app, funcref, expStr }
