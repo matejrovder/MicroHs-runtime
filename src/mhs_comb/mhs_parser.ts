@@ -1,4 +1,4 @@
-import { app, combinator, funcref, intConst, Pointer, SKI, strConst } from "../ast";
+import { app, combinator, funcref, intConst, Pointer, GraphN, strConst } from "../ast";
 import { evalExpStr, Evaluator, makePointer } from "../eval";
 import { MhsLexer, mhsToken } from "./mhs_lexer";
 
@@ -30,8 +30,8 @@ export class MhsParser {
         return this.currentToken;
     }
 
-    parse(): [SKI, Map<number, Pointer>] {
-        const stack: SKI[] = []
+    parse(): [GraphN, Map<number, Pointer>] {
+        const stack: GraphN[] = []
         const pointers: Map<number, Pointer> = new Map()
         while (true) {
             switch (this.currentToken) {
@@ -41,7 +41,7 @@ export class MhsParser {
                 case mhsToken.app: {
                     if (stack.length < 2)
                         throw new Error("@ with stack length < 2")
-                    const rhs: SKI = stack.pop()!
+                    const rhs: GraphN = stack.pop()!
                     stack.push(app(stack.pop()!, rhs))
                     break
                 }

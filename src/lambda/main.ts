@@ -1,4 +1,4 @@
-import { expStr, SKI } from '../ast'
+import { expStr, GraphN } from '../ast'
 import { compileSKI } from "./ski_compile";
 import { Parser } from './parser'
 import { evalExpStr, Evaluator } from '../eval'
@@ -18,7 +18,7 @@ console.log(ski);
 console.log(expStr(ski));
 
 let etor = new Evaluator()
-let ev: SKI = etor.evaluate(ski)
+let ev: GraphN = etor.evaluate(ski)
 console.log(evalExpStr(ev))
 
 

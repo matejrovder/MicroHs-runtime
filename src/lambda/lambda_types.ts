@@ -1,6 +1,6 @@
-import { Str, Int, FuncRef, SKI } from '../ast'
+import { Str, Int, FuncRef, GraphN } from '../ast'
 
-type LT = Var | LTApp | Abs | LTConst | SKI
+type LT = Var | LTApp | Abs | LTConst | GraphN
 type LTConst = | Str | Int | FuncRef;
 
 type Var = {

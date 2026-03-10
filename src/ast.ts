@@ -7,8 +7,8 @@ type Var = {
 
 type App = {
     type: 'app';
-    lhs: SKI;
-    rhs: SKI;
+    lhs: GraphN;
+    rhs: GraphN;
 }
 
 type Const = Comb | Str | Int | FuncRef;
@@ -45,7 +45,7 @@ type Pointer = {
 type PointedTo = {
     type: 'pointedto'
     evaluated: boolean
-    term: SKI;
+    term: GraphN;
 }
 
 type NumberedRef = {
@@ -53,8 +53,8 @@ type NumberedRef = {
     value: number
 }
 
-type SKI = App | Const | Pointer | NumberedRef
-
+type GraphN = App | Const | Pointer | NumberedRef
+// Graph node
 
 function strConst(x: string): Const {
     return { "type": "const", "ctype": "str", "value": x }
@@ -68,7 +68,7 @@ function combinator(x: string): Const {
     return { "type": "const", "ctype": "comb", "name": x }
 }
 
-function app(t1: SKI, t2: SKI): App {
+function app(t1: GraphN, t2: GraphN): App {
     return { "type": "app", "lhs": t1, "rhs": t2 };
 }
 
@@ -76,7 +76,7 @@ function funcref(f: string): FuncRef {
     return { "type": "const", "ctype": "funcref", "name": f };
 }
 
-function expStr(term: LT | SKI): string {
+function expStr(term: LT | GraphN): string {
     switch (term.type) {
         case "var":
             {
@@ -109,4 +109,4 @@ function expStr(term: LT | SKI): string {
     }
 }
 
-export { SKI, LT, Pointer, PointedTo, Var, App, Const, Comb, Str, Int, FuncRef, combinator, strConst, intConst, app, funcref, expStr }
+export { GraphN, LT, Pointer, PointedTo, Var, App, Const, Comb, Str, Int, FuncRef, combinator, strConst, intConst, app, funcref, expStr }
