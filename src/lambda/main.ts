@@ -1,6 +1,7 @@
-import { compileSKI, expStr, SKI } from './ast'
+import { expStr, SKI } from '../ast'
+import { compileSKI } from "./ski_compile";
 import { Parser } from './parser'
-import { evalExpStr, Evaluator } from './eval'
+import { evalExpStr, Evaluator } from '../eval'
 
 const fs = require('fs')
 

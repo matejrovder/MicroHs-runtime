@@ -1,5 +1,6 @@
-import { compileSKI, expStr, LT } from './ast'
 import { Parser } from './parser'
+import { expStr } from "../ast";
+import { compileSKI } from "./ski_compile";
 
 function test(name: string, input: string, output: string) {
     const p1 = new Parser(input)

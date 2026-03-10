@@ -1,6 +1,8 @@
 import { token, Lexer } from './lexer';
-// import { ASTNode, AbstractionNode, ApplicationNode, VariableNode, CombinatorNode, EmptyNode, makeAbstraction } from './ast'
-import { LT, Var, App, Abs, Const, variable, combinator, app, intConst, funcref, expStr, makeAbstraction, compileSKI } from './ast'
+import { LT, ltapp, makeAbstraction, variable } from "./lambda_types";
+import { combinator, funcref, intConst } from "../ast";
+// import { ASTNode, AbstractionNode, ApplicationNode, VariableNode, CombinatorNode, EmptyNode, makeAbstraction } from '../ast'
+
 // import * as y ...
 
 export class Parser {
@@ -41,7 +43,7 @@ export class Parser {
                     this.getNextToken();
                     let rhs = this.parseBracketExpr(null);
                     if (lhs !== null)
-                        lhs = app(lhs, rhs);
+                        lhs = ltapp(lhs, rhs);
                     else
                         lhs = rhs
                     break;
@@ -53,7 +55,7 @@ export class Parser {
                         lhs = c;
                     }
                     else {
-                        lhs = app(lhs, c);
+                        lhs = ltapp(lhs, c);
                     }
 
                     this.getNextToken()
@@ -71,7 +73,7 @@ export class Parser {
                         lhs = v;
                     }
                     else {
-                        lhs = app(lhs, v);
+                        lhs = ltapp(lhs, v);
                     }
 
                     this.getNextToken()
@@ -112,7 +114,7 @@ export class Parser {
 
         this.match(token.bracketright)
         if (lhs !== null) {
-            return app(lhs, rhs);
+            return ltapp(lhs, rhs);
         }
         return rhs;
     }

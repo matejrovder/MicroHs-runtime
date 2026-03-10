@@ -1,4 +1,4 @@
-import { SKI, LT, Pointer, PointedTo, Var, App, Abs, Const, variable, combinator, app, expStr, makeAbstraction, compileSKI, intConst, strConst, Comb } from './ast'
+import { SKI, Pointer, PointedTo, App, combinator, app, intConst, strConst, Comb } from './ast'
 
 export function makePointer(node: SKI): Pointer {
     if (node.type === 'ptr')
@@ -18,7 +18,7 @@ function arithmetic(x: SKI, y: SKI, fn: (p1: number, p2: number) => number): SKI
     if ((x.type === 'const' && x.ctype === 'int') && (y.type === 'const' && y.ctype === 'int')) {
         return intConst(fn(x.value, y.value))
     }
-    throw new Error("invalid types for arithmetic operation, try evaluating arguments first")
+    throw new Error("invalid types for arithmetic operation, try evaluating arguments first " + x.type + y.type)
 }
 
 function printFunction(x: SKI): SKI {
@@ -351,10 +351,6 @@ export function evalExpStr(term: SKI): string {
             const evaluated = term.value.evaluated ? "T" : "F"
             return "ptr,e=" + evaluated + "( " + evalExpStr(term.value.term) + " )"
         }
-        case "var":
-            {
-                return term.varN;
-            }
         case "const":
             {
                 switch (term.ctype) {
@@ -374,10 +370,6 @@ export function evalExpStr(term: SKI): string {
         case "app":
             {
                 return " ( " + evalExpStr(term.lhs) + " " + evalExpStr(term.rhs) + " ) ";
-            }
-        case "abs":
-            {
-                return " ( λ " + term.var + " . " + evalExpStr(term.term) + " ) ";
             }
         default:
             throw new Error("invalid lambda term type");
