@@ -87,8 +87,8 @@ export class Evaluator {
             switch (top.type) {
                 case 'ptr':
                     if (!top.value.evaluated) {
-                        top.value.term = this.evaluate(top.value.term)
                         top.value.evaluated = true
+                        top.value.term = this.evaluate(top.value.term, top.value)
                     }
 
                     top = top.value.term
@@ -112,7 +112,7 @@ export class Evaluator {
     }
 
     // TODO: try to optimize using pointer reversal
-    evaluate(node: SKI): SKI {
+    evaluate(node: SKI, writeback: PointedTo | null = null): SKI {
         const lhs_stack: App[] = []
 
         let top = node
@@ -149,6 +149,13 @@ export class Evaluator {
                     throw new Error("unknown function " + top.name)
             }
             else break
+            // TODO: this is where we want to replace all occurences of this node in the graph with the evaluated node
+            if (lhs_stack.length > 0)
+                lhs_stack[lhs_stack.length - 1].lhs = top
+            if (writeback !== null) {
+                writeback.term = lhs_stack[0] ?? top
+            }
+
             top = this.unwrapPointer(top, lhs_stack)
         }
 
