@@ -1,4 +1,4 @@
-import { app, combinator, funcref, intConst, mkString, Pointer, SKI, strConst } from "../ast";
+import { app, combinator, funcref, intConst, mkString, Pointer, GraphN, strConst } from "../types";
 import { evalExpStr, Evaluator, makePointer } from "../mhs_old_eval";
 // import { evalExpStr, Evaluator, makePointer } from "../mhs_dump_eval";
 import { MhsOldLexer, mhsOldToken } from "./mhs_old_lexer";
@@ -30,7 +30,7 @@ export class MhsOldParser {
             throw new Error(err === null ? "unexpected token " + this.currentToken + " ,was expecting " + token : err)
     }
 
-    parse(): [SKI, Map<number, Pointer>] {
+    parse(): [GraphN, Map<number, Pointer>] {
         /**
          * @return main function and expression map
          */
@@ -42,7 +42,7 @@ export class MhsOldParser {
         return [expr, this.pointers]
     }
 
-    parseBracketExpr(lhs: SKI | null = null): SKI | null {
+    parseBracketExpr(lhs: GraphN | null = null): GraphN | null {
         const rhs = this.parseExpr(null)
         if (rhs === null) { /* empty */ }
         else if (lhs !== null)
@@ -54,8 +54,8 @@ export class MhsOldParser {
         return lhs
     }
 
-    parseExpr(lhs: SKI | null = null, acceptEOF: boolean = false): SKI | null {
-        let rhs: SKI | null
+    parseExpr(lhs: GraphN | null = null, acceptEOF: boolean = false): GraphN | null {
+        let rhs: GraphN | null
         while (true) {
             switch (this.currentToken) {
                 case mhsOldToken.comb:

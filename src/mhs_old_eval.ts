@@ -1,6 +1,6 @@
-import { SKI, LT, Pointer, PointedTo, Var, App, Abs, Const, variable, combinator, app, expStr, makeAbstraction, compileSKI, intConst, strConst, Comb } from './ast'
+import { GraphN, Pointer, PointedTo, App, combinator, app, intConst, strConst, Comb } from './types'
 
-export function makePointer(node: SKI): Pointer {
+export function makePointer(node: GraphN): Pointer {
     if (node.type === 'ptr')
         return node;
 
@@ -11,23 +11,23 @@ export function makePointer(node: SKI): Pointer {
 type FuncDef = {
     arity: number,
     strict: boolean, // whether function needs all arguments evaluated before call
-    fn: (...params: SKI[]) => SKI
+    fn: (...params: GraphN[]) => GraphN
 }
 
-function arithmetic(x: SKI, y: SKI, fn: (p1: number, p2: number) => number): SKI {
+function arithmetic(x: GraphN, y: GraphN, fn: (p1: number, p2: number) => number): GraphN {
     if ((x.type === 'const' && x.ctype === 'int') && (y.type === 'const' && y.ctype === 'int')) {
         return intConst(fn(x.value, y.value))
     }
     throw new Error("invalid types for arithmetic operation, try evaluating arguments first")
 }
 
-function printFunction(x: SKI): SKI {
+function printFunction(x: GraphN): GraphN {
     console.log(evalExpStr(x))
 
     return strConst("print")
 }
 
-function putCharFromInt(x: SKI): SKI {
+function putCharFromInt(x: GraphN): GraphN {
     if (x.type === 'const' && x.ctype === 'int') {
         process.stdout.write(String.fromCodePoint(x.value))
         return strConst("putChar")
@@ -36,7 +36,7 @@ function putCharFromInt(x: SKI): SKI {
         throw new Error("invalid node type")
 }
 
-function comparison(x: SKI, y: SKI, cmp: (p1: number, p2: number) => boolean): SKI {
+function comparison(x: GraphN, y: GraphN, cmp: (p1: number, p2: number) => boolean): GraphN {
     if ((x.type === 'const' && x.ctype === 'int') && (y.type === 'const' && y.ctype === 'int')) {
         if (cmp(x.value, y.value)) {
             // true and false values are flipped???
@@ -82,7 +82,7 @@ export class Evaluator {
         ["IO.return", { 'arity': 1, 'strict': false, 'fn': (x) => { return x } }],
     ])
 
-    unwrapPointer(top: SKI, lhs_stack: App[]): SKI {
+    unwrapPointer(top: GraphN, lhs_stack: App[]): GraphN {
         while (true) {
             switch (top.type) {
                 case 'ptr':
@@ -112,7 +112,7 @@ export class Evaluator {
     }
 
     // TODO: try to optimize using pointer reversal
-    evaluate(node: SKI, writeback: PointedTo | null = null): SKI {
+    evaluate(node: GraphN, writeback: PointedTo | null = null): GraphN {
         const lhs_stack: App[] = []
 
         let top = node
@@ -132,7 +132,7 @@ export class Evaluator {
                         // output will be the curried function
                     }
                     else {
-                        const args: SKI[] = []
+                        const args: GraphN[] = []
                         if (func.strict)
                             for (let i = 0; i < func.arity; i++) {
                                 args.push(this.evaluate(lhs_stack.pop()!.rhs))
@@ -169,7 +169,7 @@ export class Evaluator {
 }
 
 
-function evalCombExpr(top: Comb, lhs_stack: App[]): [SKI, boolean] {
+function evalCombExpr(top: Comb, lhs_stack: App[]): [GraphN, boolean] {
     switch (top.name) {
         case "S":
             if (lhs_stack.length < 3) { return [top, false] }
@@ -365,7 +365,7 @@ function evalCombExpr(top: Comb, lhs_stack: App[]): [SKI, boolean] {
 }
 
 
-export function evalExpStr(term: SKI): string {
+export function evalExpStr(term: GraphN): string {
     switch (term.type) {
         case "numref":
             return "_" + term.value
@@ -373,10 +373,6 @@ export function evalExpStr(term: SKI): string {
             const evaluated = term.value.evaluated ? "T" : "F"
             return "ptr,e=" + evaluated + "( " + evalExpStr(term.value.term) + " )"
         }
-        case "var":
-            {
-                return term.varN;
-            }
         case "const":
             {
                 switch (term.ctype) {
@@ -396,10 +392,6 @@ export function evalExpStr(term: SKI): string {
         case "app":
             {
                 return " ( " + evalExpStr(term.lhs) + " " + evalExpStr(term.rhs) + " ) ";
-            }
-        case "abs":
-            {
-                return " ( λ " + term.var + " . " + evalExpStr(term.term) + " ) ";
             }
         default:
             throw new Error("invalid lambda term type");

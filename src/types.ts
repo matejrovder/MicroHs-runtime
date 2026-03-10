@@ -60,7 +60,7 @@ function strConst(x: string): Const {
     return { "type": "const", "ctype": "str", "value": x }
 }
 
-function mkCons(x: LT, xs: LT): App {
+function mkCons(x: GraphN, xs: GraphN): App {
     return app(app(combinator("O"), x), xs)
     // O - cons combinator
 }

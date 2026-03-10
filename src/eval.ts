@@ -18,7 +18,7 @@ function arithmetic(x: GraphN, y: GraphN, fn: (p1: number, p2: number) => number
     if ((x.type === 'const' && x.ctype === 'int') && (y.type === 'const' && y.ctype === 'int')) {
         return intConst(fn(x.value, y.value))
     }
-    throw new Error("invalid types for arithmetic operation, try evaluating arguments first " + x.type + y.type)
+    throw new Error("invalid types for arithmetic operation, try evaluating arguments first")
 }
 
 function printFunction(x: GraphN): GraphN {
