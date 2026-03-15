@@ -273,6 +273,7 @@ function evalCombExpr(top: Comb, lhs_stack: App[]): [GraphN, boolean] {
                 const y = lhs_stack.pop()!.rhs
                 return [app(y, x), true]
             }
+        case "BK":
         case "Z":
             if (lhs_stack.length < 3) { return [top, false] }
             else {
