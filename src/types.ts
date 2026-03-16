@@ -11,7 +11,13 @@ type App = {
     rhs: GraphN;
 }
 
-type Const = Comb | Str | Int | FuncRef;
+type Const = Comb | Str | Int | FuncRef | Arr;
+
+type Arr = {
+    type: 'const'
+    ctype: 'arr';
+    array: GraphN[];
+}
 
 type Comb = {
     type: 'const'
@@ -60,7 +66,7 @@ function strConst(x: string): Const {
     return { "type": "const", "ctype": "str", "value": x }
 }
 
-function mkCons(x: LT, xs: LT): App {
+function mkCons(x: GraphN, xs: GraphN): App {
     return app(app(combinator("O"), x), xs)
     // O - cons combinator
 }
@@ -124,4 +130,4 @@ function expStr(term: LT | GraphN): string {
     }
 }
 
-export { GraphN, Pointer, PointedTo, Var, App, Const, Comb, Str, Int, FuncRef, combinator, strConst, mkString, intConst, app, funcref, expStr }
+export { GraphN, Pointer, PointedTo, Var, App, Const, Arr, Comb, Str, Int, FuncRef, combinator, strConst, mkString, intConst, app, funcref, expStr }

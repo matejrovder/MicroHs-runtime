@@ -1,4 +1,4 @@
-import { GraphN, Pointer, PointedTo, App, combinator, app, intConst, strConst, Comb } from './types'
+import { GraphN, Pointer, PointedTo, App, combinator, app, intConst, strConst, Comb, Arr, mkString } from './types'
 
 export function makePointer(node: GraphN): Pointer {
     if (node.type === 'ptr')
@@ -30,15 +30,29 @@ function printFunction(x: GraphN): GraphN {
 function comparison(x: GraphN, y: GraphN, cmp: (p1: number, p2: number) => boolean): GraphN {
     if ((x.type === 'const' && x.ctype === 'int') && (y.type === 'const' && y.ctype === 'int')) {
         if (cmp(x.value, y.value)) {
-            return combinator("K")
+            // true and false values are flipped???
+            // TODO: lambda needs a special evaluator now
+            return combinator("A")
         }
         else {
-            return app(combinator("K"), combinator("I"))
+            return combinator("K")
         }
     }
     throw new Error("invalid types for arithmetic operation, try evaluating arguments first")
 }
 
+function putCharFromInt(x: GraphN): GraphN {
+    if (x.type === 'const' && x.ctype === 'int') {
+        process.stdout.write(String.fromCodePoint(x.value))
+        return strConst("putChar")
+    }
+    else
+        throw new Error("invalid node type")
+}
+
+function isNamed(x: GraphN, name: string): boolean {
+    return x.type === 'const' && (x.ctype === 'comb' || x.ctype === 'funcref') && x.name === name
+}
 
 export class Evaluator {
     pointers: Map<number, Pointer>
@@ -47,10 +61,19 @@ export class Evaluator {
         this.pointers = pointers
     }
 
+    performIO(x: GraphN): GraphN {
+        x = this.execio(x)
+        if (x.type !== 'app' || !isNamed(this.indir(x.lhs), "IO.return"))
+            throw new Error("wrong performio")
+        return x.rhs
+    }
+
     functionMap: Map<string, FuncDef> = new Map([
         ["+", { 'arity': 2, 'strict': true, 'fn': (x, y) => arithmetic(x, y, (p1, p2) => p1 + p2) }],
         ["-", { 'arity': 2, 'strict': true, 'fn': (x, y) => arithmetic(x, y, (p1, p2) => p1 - p2) }],
         ["*", { 'arity': 2, 'strict': true, 'fn': (x, y) => arithmetic(x, y, (p1, p2) => p1 * p2) }],
+        ["quot", { 'arity': 2, 'strict': true, 'fn': (x, y) => arithmetic(x, y, (p1, p2) => p1 / p2) }],
+        ["rem", { 'arity': 2, 'strict': true, 'fn': (x, y) => arithmetic(x, y, (p1, p2) => p1 % p2) }],
         ["=", { 'arity': 2, 'strict': true, 'fn': (x, y) => comparison(x, y, (p1, p2) => p1 == p2) }],
         ["==", { 'arity': 2, 'strict': true, 'fn': (x, y) => comparison(x, y, (p1, p2) => p1 == p2) }],
         ["/=", { 'arity': 2, 'strict': true, 'fn': (x, y) => comparison(x, y, (p1, p2) => p1 != p2) }],
@@ -63,8 +86,16 @@ export class Evaluator {
         ["u<", { 'arity': 2, 'strict': true, 'fn': (x, y) => comparison(x, y, (p1, p2) => p1 < p2) }],
         ["u>=", { 'arity': 2, 'strict': true, 'fn': (x, y) => comparison(x, y, (p1, p2) => p1 >= p2) }],
         ["u>", { 'arity': 2, 'strict': true, 'fn': (x, y) => comparison(x, y, (p1, p2) => p1 > p2) }],
-        ["print", { 'arity': 1, 'strict': true, 'fn': (x) => printFunction(x) }],
         ["double", { 'arity': 1, 'strict': true, 'fn': (x) => arithmetic(x, intConst(2), (p1, p2) => p1 * p2) }],
+        ["and", { 'arity': 2, 'strict': true, 'fn': (x, y) => arithmetic(x, y, (p1, p2) => p1 & p2) }],
+        ["neg", { 'arity': 1, 'strict': true, 'fn': (x) => arithmetic(intConst(0), x, (p1, p2) => p1 - p2) }],
+        ["raise", { 'arity': 1, 'strict': true, 'fn': (x) => { console.log("raised error: " + evalExpStr(x)); return strConst("raise") } }],
+        ["IO.performIO", { 'arity': 1, 'strict': false, 'fn': (x) => this.performIO(x) }],
+        ["seq", { 'arity': 2, 'strict': false, 'fn': (x, y) => { this.evaluate(x); return y } }],
+        ["fromUTF8", {
+            'arity': 1, 'strict': true,
+            'fn': (x) => { if (x.type === 'const' && x.ctype === 'str') return mkString(x.value); throw Error("invalid string for fromUTF8") }
+        }],
     ])
 
     unwrapPointer(top: GraphN, lhs_stack: App[]): GraphN {
@@ -92,6 +123,158 @@ export class Evaluator {
                 }
                 default:
                     return top
+            }
+        }
+    }
+
+    indir(top: GraphN): GraphN {
+        /**@brief follows indirection */
+        switch (top.type) {
+            case 'ptr':
+                if (!top.value.evaluated) {
+                    top.value.term = this.evaluate(top.value.term)
+                    top.value.evaluated = true
+                }
+
+                return top.value.term
+                break;
+            case 'numref': {
+                const ref = this.pointers.get(top.value)
+                if (ref == undefined)
+                    throw new Error("Invalid shared expression reference: _" + top.value)
+                else
+                    return ref
+                break;
+            }
+            default:
+                return top
+        }
+    }
+
+    execio(node: GraphN): GraphN {
+        let top = node
+        const cont: GraphN[] = [] // continuation of execio
+
+        while (true) {
+            // label start in mhs code
+            const whnf = this.evaluate(top)
+
+            const bindMatch = this.match2("IO.>>=", whnf)
+            if (bindMatch) {
+                const [r, s] = bindMatch
+                top = r
+                cont.push(s)
+                continue
+            }
+
+            const thenMatch = this.match2("IO.>>", whnf)
+            if (thenMatch) {
+                const [r, s] = thenMatch
+                top = r
+                cont.push(app(combinator("K"), s))
+                continue
+            }
+
+            const prim = this.execPrimitiveIO(whnf)
+            // label rest in mhs code
+            if (cont.length === 0) {
+                return app(combinator("IO.return"), prim)
+            }
+            else {
+                const r = cont.pop()!
+                top = app(r, prim)
+                continue
+            }
+        }
+    }
+
+    execPrimitiveIO(top: GraphN): GraphN {
+        // label execute in mhs code
+        const lhs_stack: App[] = []
+
+        while (true) {
+            switch (top.type) {
+                case "app":
+                    lhs_stack.push(top)
+                    top = top.lhs
+                    break
+                case "ptr":
+                    // TODO: we need writeback for this
+                    top = top.value.term
+                    break
+                case "numref": {
+                    const ref = this.pointers.get(top.value)
+                    if (ref == undefined)
+                        throw new Error("Invalid shared expression reference: _" + top.value)
+                    else
+                        top = ref
+                    break;
+                }
+                case "const": {
+                    switch (top.ctype) {
+                        case "comb":
+                        case "funcref":
+                            switch (top.name) {
+                                case "IO.print": {
+                                    if (lhs_stack.length < 2)
+                                        throw new Error(top.name + " arguments missing")
+
+                                    lhs_stack.pop() // handle/stream
+                                    const x = this.evaluate(lhs_stack.pop()!.rhs)
+                                    console.log(evalExpStr(x))
+                                    return combinator("I")
+                                }
+                                case "IO.return": {
+                                    if (lhs_stack.length < 1)
+                                        throw new Error(top.name + " arguments missing")
+
+                                    return lhs_stack.pop()!.rhs
+                                }
+                                case "A.alloc": {
+                                    if (lhs_stack.length < 2)
+                                        throw new Error(top.name + " arguments missing")
+                                    const x = this.evaluate(lhs_stack.pop()!.rhs)
+                                    const y = makePointer(lhs_stack.pop()!.rhs)
+
+                                    if (x.type === 'const' && x.ctype === 'int' && x.value > 0) {
+                                        const arr = []
+                                        for (let i = 0; i < x.value; i++) {
+                                            arr.push(y)
+                                        }
+                                        const arrNode: Arr = { 'type': 'const', 'ctype': 'arr', 'array': arr }
+                                        return arrNode
+                                    }
+                                    throw new Error("invalid array size")
+                                }
+                                case "A.read": {
+                                    if (lhs_stack.length < 2)
+                                        throw new Error(top.name + " arguments missing")
+                                    const x = this.evaluate(lhs_stack.pop()!.rhs)
+                                    const y = this.evaluate(lhs_stack.pop()!.rhs)
+
+                                    if (x.type !== 'const' || x.ctype !== 'arr')
+                                        throw new Error("A.read: invalid array")
+                                    if (y.type !== 'const' || y.ctype !== 'int' || y.value < 0 || y.value >= x.array.length)
+                                        throw new Error("Invalid array index")
+                                    return x.array[y.value]
+                                }
+                                case "putb": {
+                                    if (lhs_stack.length < 2)
+                                        throw new Error(top.name + " arguments missing")
+                                    const x = this.evaluate(lhs_stack.pop()!.rhs)
+                                    lhs_stack.pop() // output stream/handle
+
+                                    putCharFromInt(x)
+                                    return combinator("I")
+                                }
+                                default:
+                                    throw new Error("Unknown IO function: " + top.name)
+                            }
+                            break
+                        default:
+                            throw new Error("cannot execute IO, invalid node type: " + top.ctype)
+                    }
+                }
             }
         }
     }
@@ -130,8 +313,11 @@ export class Evaluator {
                         top = func.fn(...args)
                     }
                 }
-                else
-                    throw new Error("unknown function " + top.name)
+                else {
+                    // throw new Error("unknown function " + top.name)
+                    console.error("unknown function " + top.name)
+                    break
+                }
             }
             else break
             top = this.unwrapPointer(top, lhs_stack)
@@ -142,7 +328,29 @@ export class Evaluator {
             const rhs = lhs_stack.pop()!.rhs // not evaluating here, to keep lazy eval
             top = app(top, rhs)
         }
+
+        if (top.type === 'ptr' || top.type === 'numref')
+            throw new Error("invalid eval") // sanity check
+
         return top;
+    }
+
+    match2(combName: string, node: GraphN): [GraphN, GraphN] | null {
+        /**
+         * @brief matches node to expression: combName x y
+         */
+        if (node.type !== 'app')
+            return null
+
+        const lhs = this.indir(node.lhs)
+        if (lhs.type !== 'app')
+            return null
+
+        const head = this.indir(lhs.lhs)
+        if (!isNamed(head, combName))
+            return null
+
+        return [lhs.rhs, node.rhs]
     }
 }
 
@@ -168,6 +376,8 @@ function evalCombExpr(top: Comb, lhs_stack: App[]): [GraphN, boolean] {
                 return [x, true]
             }
         case "I":
+        case "ord":
+        case "chr":
             if (lhs_stack.length < 1) { return [top, false] }
             else {
                 return [lhs_stack.pop()!.rhs, true]
@@ -187,7 +397,6 @@ function evalCombExpr(top: Comb, lhs_stack: App[]): [GraphN, boolean] {
 
                 return [app(f, app(g, x)), true]
             }
-        case "IO.>>=":
         case "C":
             if (lhs_stack.length < 3) { return [top, false] }
             else {
@@ -328,17 +537,9 @@ function evalCombExpr(top: Comb, lhs_stack: App[]): [GraphN, boolean] {
 
                 return [app(app(x, z), app(y, w)), true]
             }
-        case "IO.>>":
-            // IO.>> x y = IO.>>= x (K y)
-            if (lhs_stack.length < 2) { return [top, false] }
-            else {
-                const x = lhs_stack.pop()!.rhs
-                const y = lhs_stack.pop()!.rhs
-
-                return [app(app(combinator("IO.>>="), x), app(combinator("K"), y)), true]
-            }
         default:
-            throw new Error("cannot evaluate combinator: " + top.name)
+            return [top, false]
+        // throw new Error("cannot evaluate combinator: " + top.name)
     }
 }
 
@@ -364,6 +565,13 @@ export function evalExpStr(term: GraphN): string {
                     // return term.value;
                     case "int":
                         return term.value.toString();
+                    case "arr": {
+                        let res = "array, size=" + term.array.length + " ["
+                        for (let i = 0; i < term.array.length && i < 5; i++) {
+                            res += evalExpStr(term.array[i]) + ", "
+                        }
+                        return res + "] "
+                    }
                     default: throw new Error("Invalid ctype");
                 }
             }
