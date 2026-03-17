@@ -41,6 +41,15 @@ function comparison(x: GraphN, y: GraphN, cmp: (p1: number, p2: number) => boole
     throw new Error("invalid types for arithmetic operation, try evaluating arguments first")
 }
 
+function compare(x: GraphN, y: GraphN): GraphN {
+    if ((x.type === 'const' && x.ctype === 'int') && (y.type === 'const' && y.ctype === 'int')) {
+        if (x.value < y.value) return app(combinator("Z"), combinator("K"))
+        else if (x.value > y.value) return app(combinator("K"), combinator("A"))
+        else return (combinator("K"), combinator("K"))
+    }
+    throw new Error("invalid types for arithmetic operation, try evaluating arguments first")
+}
+
 function putCharFromInt(x: GraphN): GraphN {
     if (x.type === 'const' && x.ctype === 'int') {
         process.stdout.write(String.fromCodePoint(x.value))
@@ -75,6 +84,9 @@ export class Evaluator {
         ["quot", { 'arity': 2, 'strict': true, 'fn': (x, y) => arithmetic(x, y, (p1, p2) => p1 / p2 | 0) }],
         ["rem", { 'arity': 2, 'strict': true, 'fn': (x, y) => arithmetic(x, y, (p1, p2) => p1 % p2) }],
         ["=", { 'arity': 2, 'strict': true, 'fn': (x, y) => comparison(x, y, (p1, p2) => p1 == p2) }],
+        ["u-", { 'arity': 2, 'strict': true, 'fn': (x, y) => arithmetic(x, y, (p1, p2) => p1 - p2) }],
+        ["cmp", { 'arity': 2, 'strict': true, 'fn': (x, y) => compare(x, y) }],
+        ["ucmp", { 'arity': 2, 'strict': true, 'fn': (x, y) => compare(x, y) }],
         ["==", { 'arity': 2, 'strict': true, 'fn': (x, y) => comparison(x, y, (p1, p2) => p1 == p2) }],
         ["/=", { 'arity': 2, 'strict': true, 'fn': (x, y) => comparison(x, y, (p1, p2) => p1 != p2) }],
         ["<=", { 'arity': 2, 'strict': true, 'fn': (x, y) => comparison(x, y, (p1, p2) => p1 <= p2) }],
@@ -91,6 +103,8 @@ export class Evaluator {
         ["inv", { 'arity': 1, 'strict': true, 'fn': (x) => arithmetic(intConst(0), x, (p1, p2) => ~p2) }],
         ["neg", { 'arity': 1, 'strict': true, 'fn': (x) => arithmetic(intConst(0), x, (p1, p2) => p1 - p2) }],
         ["shr", { 'arity': 2, 'strict': true, 'fn': (x, y) => arithmetic(x, y, (p1, p2) => p1 >>> p2) }],
+        ["ashr", { 'arity': 2, 'strict': true, 'fn': (x, y) => arithmetic(x, y, (p1, p2) => p1 >> p2) }],
+        ["shl", { 'arity': 2, 'strict': true, 'fn': (x, y) => arithmetic(x, y, (p1, p2) => p1 << p2) }],
         ["raise", { 'arity': 1, 'strict': true, 'fn': (x) => { console.log("raised error: " + evalExpStr(x)); return strConst("raise") } }],
         ["IO.performIO", { 'arity': 1, 'strict': false, 'fn': (x) => this.performIO(x) }],
         ["seq", { 'arity': 2, 'strict': false, 'fn': (x, y) => { this.evaluate(x); return y } }],
