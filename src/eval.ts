@@ -77,6 +77,17 @@ export class Evaluator {
         return x.rhs
     }
 
+    noOpPrimops: Set<string> = new Set([
+        "IO.>>",
+        "IO.>>=",
+        "IO.return",
+        "IO.print",
+        "A.alloc",
+        "A.read",
+        "putb",
+        "IO.stdout"
+    ])
+
     functionMap: Map<string, FuncDef> = new Map([
         ["+", { 'arity': 2, 'strict': true, 'fn': (x, y) => arithmetic(x, y, (p1, p2) => p1 + p2) }],
         ["-", { 'arity': 2, 'strict': true, 'fn': (x, y) => arithmetic(x, y, (p1, p2) => p1 - p2) }],
@@ -309,6 +320,9 @@ export class Evaluator {
                 [top, loopAgain] = evalCombExpr(top, lhs_stack)
             }
             else if (top.ctype === 'funcref') {
+                if (this.noOpPrimops.has(top.name))
+                    break
+
                 const func = this.functionMap.get(top.name)
                 if (func !== undefined) {
                     if (lhs_stack.length < func.arity) {
@@ -330,8 +344,7 @@ export class Evaluator {
                     }
                 }
                 else {
-                    // throw new Error("unknown function " + top.name)
-                    console.error("unknown function " + top.name)
+                    throw new Error("unknown function " + top.name)
                     break
                 }
             }
@@ -555,7 +568,6 @@ function evalCombExpr(top: Comb, lhs_stack: App[]): [GraphN, boolean] {
             }
         default:
             return [top, false]
-        // throw new Error("cannot evaluate combinator: " + top.name)
     }
 }
 
