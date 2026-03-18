@@ -125,35 +125,6 @@ export class Evaluator {
         }],
     ])
 
-    unwrapPointer(top: GraphN, lhs_stack: App[]): GraphN {
-        while (true) {
-            switch (top.type) {
-                case 'ptr':
-                    if (!top.value.evaluated) {
-                        top.value.term = this.evaluate(top.value.term)
-                        top.value.evaluated = true
-                    }
-
-                    top = top.value.term
-                    break;
-                case 'app':
-                    lhs_stack.push(top)
-                    top = top.lhs
-                    break;
-                case 'numref': {
-                    const ref = this.pointers.get(top.value)
-                    if (ref == undefined)
-                        throw new Error("Invalid shared expression reference: _" + top.value)
-                    else
-                        top = ref
-                    break;
-                }
-                default:
-                    return top
-            }
-        }
-    }
-
     indir(top: GraphN): GraphN {
         /**@brief follows indirection */
         switch (top.type) {
@@ -305,47 +276,66 @@ export class Evaluator {
     // TODO: try to optimize using pointer reversal
     evaluate(node: GraphN): GraphN {
         const lhs_stack: App[] = []
-
         let top = node
-
-        top = this.unwrapPointer(top, lhs_stack)
-
         let loopAgain = true
-        while (loopAgain && (top.type === 'comb' || top.type === 'funcref')) {
-            if (top.type === 'comb') {
-                [top, loopAgain] = evalCombExpr(top, lhs_stack)
-            }
-            else if (top.type === 'funcref') {
-                if (this.noOpPrimops.has(top.name))
-                    break
 
-                const func = this.functionMap.get(top.name)
-                if (func !== undefined) {
-                    if (lhs_stack.length < func.arity) {
-                        loopAgain = false;
-                        // output will be the curried function
+        while (loopAgain) {
+            switch (top.type) {
+                case 'app':
+                    lhs_stack.push(top)
+                    top = top.lhs
+                    break;
+                case 'ptr':
+                    if (!top.value.evaluated) {
+                        top.value.term = this.evaluate(top.value.term)
+                        top.value.evaluated = true
                     }
+
+                    top = top.value.term
+                    break;
+                case 'numref': {
+                    const ref = this.pointers.get(top.value)
+                    if (ref == undefined)
+                        throw new Error("Invalid shared expression reference: _" + top.value)
+                    else
+                        top = ref
+                    break;
+                }
+                case "comb":
+                    [top, loopAgain] = evalCombExpr(top, lhs_stack)
+                    break
+                case "funcref":
+                    if (this.noOpPrimops.has(top.name))
+                        loopAgain = false
                     else {
-                        const args: GraphN[] = []
-                        if (func.strict)
-                            for (let i = 0; i < func.arity; i++) {
-                                args.push(this.evaluate(lhs_stack.pop()!.rhs))
+                        const func = this.functionMap.get(top.name)
+                        if (func !== undefined) {
+                            if (lhs_stack.length < func.arity) {
+                                loopAgain = false;
+                                // output will be the curried function
                             }
-                        else
-                            for (let i = 0; i < func.arity; i++) {
-                                args.push(lhs_stack.pop()!.rhs)
-                            }
+                            else {
+                                const args: GraphN[] = []
+                                if (func.strict)
+                                    for (let i = 0; i < func.arity; i++) {
+                                        args.push(this.evaluate(lhs_stack.pop()!.rhs))
+                                    }
+                                else
+                                    for (let i = 0; i < func.arity; i++) {
+                                        args.push(lhs_stack.pop()!.rhs)
+                                    }
 
-                        top = func.fn(...args)
+                                top = func.fn(...args)
+                            }
+                        }
+                        else {
+                            throw new Error("unknown function " + top.name)
+                        }
                     }
-                }
-                else {
-                    throw new Error("unknown function " + top.name)
                     break
-                }
+                default:
+                    loopAgain = false
             }
-            else break
-            top = this.unwrapPointer(top, lhs_stack)
         }
 
         while (lhs_stack.length > 0) {
