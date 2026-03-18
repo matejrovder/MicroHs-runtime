@@ -7,7 +7,7 @@ import { app, GraphN, combinator, strConst } from '../types'
 // requires variables to be kept there during compilation and the strict SKI / Graph node type doesn't allow variables.
 
 function isComb(term: LT, name: string) {
-    return term.type === 'const' && term.ctype === 'comb' && term.name === name
+    return term.type === 'comb' && term.name === name
 }
 
 function optimizeCombS(term1: LT, term2: LT): LT {
@@ -54,7 +54,9 @@ function optimizeCombS(term1: LT, term2: LT): LT {
 
 function ensureSKI(term: LT): GraphN {
     switch (term.type) {
-        case "const":
+        case "int":
+        case "funcref":
+        case "comb":
             {
                 return term;
             }
@@ -82,7 +84,9 @@ function abstractSKI(term: LT, absVariable: string): LT {
                     return combinator("I")
                 else return ltapp(combinator("K"), term);
             }
-        case "const":
+        case "int":
+        case "funcref":
+        case "comb":
             {
                 return ltapp(combinator("K"), term);
             }
@@ -114,7 +118,9 @@ function _compileSKI(term: LT): LT {
                 console.log("_compileSKI WARNING: variable " + term.varN + " present in the expression")
                 return strConst(term.varN);
             }
-        case "const":
+        case "int":
+        case "funcref":
+        case "comb":
             {
                 return term;
             }

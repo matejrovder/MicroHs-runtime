@@ -15,7 +15,7 @@ type FuncDef = {
 }
 
 function arithmetic(x: GraphN, y: GraphN, fn: (p1: number, p2: number) => number): GraphN {
-    if ((x.type === 'const' && x.ctype === 'int') && (y.type === 'const' && y.ctype === 'int')) {
+    if (x.type === 'int' && y.type === 'int') {
         return intConst(fn(x.value, y.value))
     }
     throw new Error("invalid types for arithmetic operation, try evaluating arguments first " + x.type + y.type)
@@ -28,7 +28,7 @@ function printFunction(x: GraphN): GraphN {
 }
 
 function comparison(x: GraphN, y: GraphN, cmp: (p1: number, p2: number) => boolean): GraphN {
-    if ((x.type === 'const' && x.ctype === 'int') && (y.type === 'const' && y.ctype === 'int')) {
+    if (x.type === 'int' && y.type === 'int') {
         if (cmp(x.value, y.value)) {
             // true and false values are flipped???
             // TODO: lambda needs a special evaluator now
@@ -42,7 +42,7 @@ function comparison(x: GraphN, y: GraphN, cmp: (p1: number, p2: number) => boole
 }
 
 function compare(x: GraphN, y: GraphN): GraphN {
-    if ((x.type === 'const' && x.ctype === 'int') && (y.type === 'const' && y.ctype === 'int')) {
+    if (x.type === 'int' && y.type === 'int') {
         if (x.value < y.value) return app(combinator("Z"), combinator("K"))
         else if (x.value > y.value) return app(combinator("K"), combinator("A"))
         else return (combinator("K"), combinator("K"))
@@ -51,7 +51,7 @@ function compare(x: GraphN, y: GraphN): GraphN {
 }
 
 function putCharFromInt(x: GraphN): GraphN {
-    if (x.type === 'const' && x.ctype === 'int') {
+    if (x.type === 'int') {
         process.stdout.write(String.fromCodePoint(x.value))
         return strConst("putChar")
     }
@@ -60,7 +60,7 @@ function putCharFromInt(x: GraphN): GraphN {
 }
 
 function isNamed(x: GraphN, name: string): boolean {
-    return x.type === 'const' && (x.ctype === 'comb' || x.ctype === 'funcref') && x.name === name
+    return (x.type === 'comb' || x.type === 'funcref') && x.name === name
 }
 
 export class Evaluator {
@@ -121,7 +121,7 @@ export class Evaluator {
         ["seq", { 'arity': 2, 'strict': false, 'fn': (x, y) => { this.evaluate(x); return y } }],
         ["fromUTF8", {
             'arity': 1, 'strict': true,
-            'fn': (x) => { if (x.type === 'const' && x.ctype === 'str') return mkString(x.value); throw Error("invalid string for fromUTF8") }
+            'fn': (x) => { if (x.type === 'str') return mkString(x.value); throw Error("invalid string for fromUTF8") }
         }],
     ])
 
@@ -237,71 +237,67 @@ export class Evaluator {
                         top = ref
                     break;
                 }
-                case "const": {
-                    switch (top.ctype) {
-                        case "comb":
-                        case "funcref":
-                            switch (top.name) {
-                                case "IO.print": {
-                                    if (lhs_stack.length < 2)
-                                        throw new Error(top.name + " arguments missing")
+                case "comb":
+                case "funcref":
+                    switch (top.name) {
+                        case "IO.print": {
+                            if (lhs_stack.length < 2)
+                                throw new Error(top.name + " arguments missing")
 
-                                    lhs_stack.pop() // handle/stream
-                                    const x = this.evaluate(lhs_stack.pop()!.rhs)
-                                    console.log(evalExpStr(x))
-                                    return combinator("I")
-                                }
-                                case "IO.return": {
-                                    if (lhs_stack.length < 1)
-                                        throw new Error(top.name + " arguments missing")
+                            lhs_stack.pop() // handle/stream
+                            const x = this.evaluate(lhs_stack.pop()!.rhs)
+                            console.log(evalExpStr(x))
+                            return combinator("I")
+                        }
+                        case "IO.return": {
+                            if (lhs_stack.length < 1)
+                                throw new Error(top.name + " arguments missing")
 
-                                    return lhs_stack.pop()!.rhs
-                                }
-                                case "A.alloc": {
-                                    if (lhs_stack.length < 2)
-                                        throw new Error(top.name + " arguments missing")
-                                    const x = this.evaluate(lhs_stack.pop()!.rhs)
-                                    const y = makePointer(lhs_stack.pop()!.rhs)
+                            return lhs_stack.pop()!.rhs
+                        }
+                        case "A.alloc": {
+                            if (lhs_stack.length < 2)
+                                throw new Error(top.name + " arguments missing")
+                            const x = this.evaluate(lhs_stack.pop()!.rhs)
+                            const y = makePointer(lhs_stack.pop()!.rhs)
 
-                                    if (x.type === 'const' && x.ctype === 'int' && x.value > 0) {
-                                        const arr = []
-                                        for (let i = 0; i < x.value; i++) {
-                                            arr.push(y)
-                                        }
-                                        const arrNode: Arr = { 'type': 'const', 'ctype': 'arr', 'array': arr }
-                                        return arrNode
-                                    }
-                                    throw new Error("invalid array size")
+                            if (x.type === 'int' && x.value > 0) {
+                                const arr = []
+                                for (let i = 0; i < x.value; i++) {
+                                    arr.push(y)
                                 }
-                                case "A.read": {
-                                    if (lhs_stack.length < 2)
-                                        throw new Error(top.name + " arguments missing")
-                                    const x = this.evaluate(lhs_stack.pop()!.rhs)
-                                    const y = this.evaluate(lhs_stack.pop()!.rhs)
-
-                                    if (x.type !== 'const' || x.ctype !== 'arr')
-                                        throw new Error("A.read: invalid array")
-                                    if (y.type !== 'const' || y.ctype !== 'int' || y.value < 0 || y.value >= x.array.length)
-                                        throw new Error("Invalid array index")
-                                    return x.array[y.value]
-                                }
-                                case "putb": {
-                                    if (lhs_stack.length < 2)
-                                        throw new Error(top.name + " arguments missing")
-                                    const x = this.evaluate(lhs_stack.pop()!.rhs)
-                                    lhs_stack.pop() // output stream/handle
-
-                                    putCharFromInt(x)
-                                    return combinator("I")
-                                }
-                                default:
-                                    throw new Error("Unknown IO function: " + top.name)
+                                const arrNode: Arr = { 'type': 'arr', 'array': arr }
+                                return arrNode
                             }
-                            break
+                            throw new Error("invalid array size")
+                        }
+                        case "A.read": {
+                            if (lhs_stack.length < 2)
+                                throw new Error(top.name + " arguments missing")
+                            const x = this.evaluate(lhs_stack.pop()!.rhs)
+                            const y = this.evaluate(lhs_stack.pop()!.rhs)
+
+                            if (x.type !== 'arr')
+                                throw new Error("A.read: invalid array")
+                            if (y.type !== 'int' || y.value < 0 || y.value >= x.array.length)
+                                throw new Error("Invalid array index")
+                            return x.array[y.value]
+                        }
+                        case "putb": {
+                            if (lhs_stack.length < 2)
+                                throw new Error(top.name + " arguments missing")
+                            const x = this.evaluate(lhs_stack.pop()!.rhs)
+                            lhs_stack.pop() // output stream/handle
+
+                            putCharFromInt(x)
+                            return combinator("I")
+                        }
                         default:
-                            throw new Error("cannot execute IO, invalid node type: " + top.ctype)
+                            throw new Error("Unknown IO function: " + top.name)
                     }
-                }
+                    break
+                default:
+                    throw new Error("cannot execute IO, invalid node type: " + top.type)
             }
         }
     }
@@ -315,11 +311,11 @@ export class Evaluator {
         top = this.unwrapPointer(top, lhs_stack)
 
         let loopAgain = true
-        while (loopAgain && top.type === 'const' && (top.ctype === 'comb' || top.ctype === 'funcref')) {
-            if (top.ctype === 'comb') {
+        while (loopAgain && (top.type === 'comb' || top.type === 'funcref')) {
+            if (top.type === 'comb') {
                 [top, loopAgain] = evalCombExpr(top, lhs_stack)
             }
-            else if (top.ctype === 'funcref') {
+            else if (top.type === 'funcref') {
                 if (this.noOpPrimops.has(top.name))
                     break
 
@@ -580,29 +576,23 @@ export function evalExpStr(term: GraphN): string {
             const evaluated = term.value.evaluated ? "T" : "F"
             return "ptr,e=" + evaluated + "( " + evalExpStr(term.value.term) + " )"
         }
-        case "const":
-            {
-                switch (term.ctype) {
-                    case "comb":
-                    case "funcref":
-                        return term.name;
-                    case "str":
-                        if (term.value.length > 20)
-                            return "string"
-                        return "string \"" + term.value + "\""
-                    // return term.value;
-                    case "int":
-                        return term.value.toString();
-                    case "arr": {
-                        let res = "array, size=" + term.array.length + " ["
-                        for (let i = 0; i < term.array.length && i < 5; i++) {
-                            res += evalExpStr(term.array[i]) + ", "
-                        }
-                        return res + "] "
-                    }
-                    default: throw new Error("Invalid ctype");
-                }
+        case "comb":
+        case "funcref":
+            return term.name;
+        case "str":
+            if (term.value.length > 20)
+                return "string"
+            return "string \"" + term.value + "\""
+        // return term.value;
+        case "int":
+            return term.value.toString();
+        case "arr": {
+            let res = "array, size=" + term.array.length + " ["
+            for (let i = 0; i < term.array.length && i < 5; i++) {
+                res += evalExpStr(term.array[i]) + ", "
             }
+            return res + "] "
+        }
         case "app":
             {
                 return " ( " + evalExpStr(term.lhs) + " " + evalExpStr(term.rhs) + " ) ";

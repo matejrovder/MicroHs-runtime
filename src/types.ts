@@ -14,32 +14,27 @@ type App = {
 type Const = Comb | Str | Int | FuncRef | Arr;
 
 type Arr = {
-    type: 'const'
-    ctype: 'arr';
+    type: 'arr'
     array: GraphN[];
 }
 
 type Comb = {
-    type: 'const'
-    ctype: 'comb';
+    type: 'comb';
     name: string;
 }
 
 type Str = {
-    type: 'const'
-    ctype: 'str';
+    type: 'str';
     value: string;
 }
 
 type Int = {
-    type: 'const'
-    ctype: 'int';
+    type: 'int';
     value: number;
 }
 
 type FuncRef = {
-    type: 'const'
-    ctype: 'funcref';
+    type: 'funcref';
     name: string;
 }
 
@@ -63,7 +58,7 @@ type GraphN = App | Const | Pointer | NumberedRef
 // Graph node
 
 function strConst(x: string): Const {
-    return { "type": "const", "ctype": "str", "value": x }
+    return { "type": "str", "value": x }
 }
 
 function mkCons(x: GraphN, xs: GraphN): App {
@@ -82,11 +77,11 @@ function mkString(x: string): App | Const {
 }
 
 function intConst(x: number): Const {
-    return { "type": "const", "ctype": "int", "value": x }
+    return { "type": "int", "value": x }
 }
 
 function combinator(x: string): Const {
-    return { "type": "const", "ctype": "comb", "name": x }
+    return { "type": "comb", "name": x }
 }
 
 function app(t1: GraphN, t2: GraphN): App {
@@ -94,28 +89,23 @@ function app(t1: GraphN, t2: GraphN): App {
 }
 
 function funcref(f: string): FuncRef {
-    return { "type": "const", "ctype": "funcref", "name": f };
+    return { "type": "funcref", "name": f };
 }
 
 function expStr(term: LT | GraphN): string {
+    // TODO: remove and replace
     switch (term.type) {
         case "var":
             {
                 return term.varN;
             }
-        case "const":
-            {
-                switch (term.ctype) {
-                    case "comb":
-                    case "funcref":
-                        return term.name;
-                    case "str":
-                        return term.value;
-                    case "int":
-                        return term.value.toString();
-                    default: throw new Error("Invalid ctype");
-                }
-            }
+        case "comb":
+        case "funcref":
+            return term.name;
+        case "str":
+            return term.value;
+        case "int":
+            return term.value.toString();
         case "app":
         case "ltapp":
             {

@@ -25,11 +25,11 @@ function variable(x: string): Var {
 }
 
 function strConst(x: string): Str {
-    return { "type": "const", "ctype": "str", "value": x }
+    return { "type": "str", "value": x }
 }
 
 function intConst(x: number): Int {
-    return { "type": "const", "ctype": "int", "value": x }
+    return { "type": "int", "value": x }
 }
 
 function ltapp(t1: LT, t2: LT): LTApp {
@@ -41,7 +41,7 @@ function lam(x: string, term: LT): Abs {
 }
 
 function funcref(f: string): FuncRef {
-    return { "type": "const", "ctype": "funcref", "name": f };
+    return { "type": "funcref", "name": f };
 }
 
 function contains(term: LT, variable: string): boolean {
@@ -50,7 +50,9 @@ function contains(term: LT, variable: string): boolean {
             {
                 return term.varN === variable;
             }
-        case "const":
+        case "int":
+        case "funcref":
+        case "comb":
             return false;
         case "ltapp":
             {
