@@ -70,6 +70,12 @@ export class MhsLexer {
     }
 
     private readInt(): void {
+        let minus = false
+        if (this.ch === "-") {
+            minus = true
+            this.ch = this.getChar()
+        }
+
         if (!/\d/.test(this.ch))
             throw new Error("invalid number")
         this.numVal = 0
@@ -78,6 +84,8 @@ export class MhsLexer {
             this.numVal += parseInt(this.ch)
             this.ch = this.getChar()
         }
+        if (minus)
+            this.numVal *= -1
     }
 
     private readFnName(): void {
