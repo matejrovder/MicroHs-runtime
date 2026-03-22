@@ -4,7 +4,8 @@
     "target": "ES6", // Target modern JavaScript
     "outDir": "./dist", // Output directory for compiled JS files
     "rootDir": "./src",
-    "strict": true
+    "strict": true,
+    "sourceMap": true
   },
   "include": ["src/**/*.ts"] // Include all TypeScript files in the src directory
 }
