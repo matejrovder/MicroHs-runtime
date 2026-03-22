@@ -280,7 +280,7 @@ export class Evaluator {
     }
 
     // TODO: try to optimize using pointer reversal
-    evaluate(node: GraphN): GraphN {
+    evaluate(node: GraphN, writeback: PointedTo | null = null): GraphN {
         const lhs_stack: App[] = []
         let top = node
         let loopAgain = true
@@ -293,7 +293,7 @@ export class Evaluator {
                     break;
                 case 'ptr':
                     if (!top.value.evaluated) {
-                        top.value.term = this.evaluate(top.value.term)
+                        top.value.term = this.evaluate(top.value.term, top.value)
                         top.value.evaluated = true
                     }
 
@@ -341,6 +341,12 @@ export class Evaluator {
                     break
                 default:
                     loopAgain = false
+            }
+            // TODO: this is where we want to replace all occurences of this node in the graph with the evaluated node
+            if (lhs_stack.length > 0)
+                lhs_stack[lhs_stack.length - 1].lhs = top
+            if (writeback !== null) {
+                writeback.term = lhs_stack[0] ?? top
             }
         }
 
