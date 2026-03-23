@@ -3,7 +3,12 @@ import { MhsParser } from "./mhs_parser"
 
 const fs = require('fs')
 
-const input = fs.readFileSync('/dev/stdin').toString()
+if (process.argv.length < 3) {
+    console.error("Usage: node " + process.argv[1] + " <combinator file>")
+    process.exit(1)
+}
+
+const input = fs.readFileSync(process.argv[2]).toString()
 
 const [top, pointers] = new MhsParser(input).parse()
 const evaluator = new Evaluator(pointers)
