@@ -379,6 +379,20 @@ export class Evaluator {
 
         return [lhs.rhs, node.rhs]
     }
+
+    match1(combName: string, node: GraphN): GraphN | null {
+        /**
+         * @brief matches node to expression: combName x
+         */
+        if (node.type !== 'app')
+            return null
+
+        const lhs = this.indir(node.lhs)
+        if (!isNamed(lhs, combName))
+            return null
+
+        return node.rhs
+    }
 }
 
 
