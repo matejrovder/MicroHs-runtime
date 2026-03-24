@@ -1,4 +1,4 @@
-import { GraphN, Pointer, PointedTo, App, combinator, app, intConst, strConst, Comb, Arr, mkString } from './types'
+import { GraphN, Pointer, PointedTo, App, combinator, app, intConst, strConst, Comb, Arr, mkString, FuncRef } from './types'
 
 export function makePointer(node: GraphN): Pointer {
     if (node.type === 'ptr')
@@ -6,12 +6,6 @@ export function makePointer(node: GraphN): Pointer {
 
     const pointedTo: PointedTo = { 'type': 'pointedto', 'evaluated': false, term: node }
     return { 'type': "ptr", 'value': pointedTo }
-}
-
-type FuncDef = {
-    arity: number,
-    strict: boolean, // whether function needs all arguments evaluated before call
-    fn: (...params: GraphN[]) => GraphN
 }
 
 function arithmetic(x: GraphN, y: GraphN, fn: (p1: number, p2: number) => number): GraphN {
@@ -76,60 +70,6 @@ export class Evaluator {
             throw new Error("wrong performio")
         return x.rhs
     }
-
-    noOpPrimops: Set<string> = new Set([
-        "IO.>>",
-        "IO.>>=",
-        "IO.return",
-        "IO.print",
-        "A.alloc",
-        "A.read",
-        "putb",
-        "IO.stdout"
-    ])
-
-    functionMap: Map<string, FuncDef> = new Map([
-        ["+", { 'arity': 2, 'strict': true, 'fn': (x, y) => arithmetic(x, y, (p1, p2) => p1 + p2) }],
-        ["u+", { 'arity': 2, 'strict': true, 'fn': (x, y) => arithmetic(x, y, (p1, p2) => p1 + p2) }],
-        ["-", { 'arity': 2, 'strict': true, 'fn': (x, y) => arithmetic(x, y, (p1, p2) => p1 - p2) }],
-        ["*", { 'arity': 2, 'strict': true, 'fn': (x, y) => arithmetic(x, y, (p1, p2) => p1 * p2) }],
-        ["u*", { 'arity': 2, 'strict': true, 'fn': (x, y) => arithmetic(x, y, (p1, p2) => p1 * p2) }],
-        ["quot", { 'arity': 2, 'strict': true, 'fn': (x, y) => arithmetic(x, y, (p1, p2) => p1 / p2 | 0) }],
-        ["uquot", { 'arity': 2, 'strict': true, 'fn': (x, y) => arithmetic(x, y, (p1, p2) => p1 / p2 | 0) }],
-        ["rem", { 'arity': 2, 'strict': true, 'fn': (x, y) => arithmetic(x, y, (p1, p2) => p1 % p2) }],
-        ["urem", { 'arity': 2, 'strict': true, 'fn': (x, y) => arithmetic(x, y, (p1, p2) => p1 % p2) }],
-        ["=", { 'arity': 2, 'strict': true, 'fn': (x, y) => comparison(x, y, (p1, p2) => p1 == p2) }],
-        ["u-", { 'arity': 2, 'strict': true, 'fn': (x, y) => arithmetic(x, y, (p1, p2) => p1 - p2) }],
-        ["cmp", { 'arity': 2, 'strict': true, 'fn': (x, y) => compare(x, y) }],
-        ["ucmp", { 'arity': 2, 'strict': true, 'fn': (x, y) => compare(x, y) }],
-        ["==", { 'arity': 2, 'strict': true, 'fn': (x, y) => comparison(x, y, (p1, p2) => p1 == p2) }],
-        ["/=", { 'arity': 2, 'strict': true, 'fn': (x, y) => comparison(x, y, (p1, p2) => p1 != p2) }],
-        ["<=", { 'arity': 2, 'strict': true, 'fn': (x, y) => comparison(x, y, (p1, p2) => p1 <= p2) }],
-        ["<", { 'arity': 2, 'strict': true, 'fn': (x, y) => comparison(x, y, (p1, p2) => p1 < p2) }],
-        [">=", { 'arity': 2, 'strict': true, 'fn': (x, y) => comparison(x, y, (p1, p2) => p1 >= p2) }],
-        [">", { 'arity': 2, 'strict': true, 'fn': (x, y) => comparison(x, y, (p1, p2) => p1 > p2) }],
-        ["u==", { 'arity': 2, 'strict': true, 'fn': (x, y) => comparison(x, y, (p1, p2) => p1 == p2) }],
-        ["u<=", { 'arity': 2, 'strict': true, 'fn': (x, y) => comparison(x, y, (p1, p2) => p1 <= p2) }],
-        ["u<", { 'arity': 2, 'strict': true, 'fn': (x, y) => comparison(x, y, (p1, p2) => p1 < p2) }],
-        ["u>=", { 'arity': 2, 'strict': true, 'fn': (x, y) => comparison(x, y, (p1, p2) => p1 >= p2) }],
-        ["u>", { 'arity': 2, 'strict': true, 'fn': (x, y) => comparison(x, y, (p1, p2) => p1 > p2) }],
-        ["double", { 'arity': 1, 'strict': true, 'fn': (x) => arithmetic(x, intConst(2), (p1, p2) => p1 * p2) }],
-        ["and", { 'arity': 2, 'strict': true, 'fn': (x, y) => arithmetic(x, y, (p1, p2) => p1 & p2) }],
-        ["or", { 'arity': 2, 'strict': true, 'fn': (x, y) => arithmetic(x, y, (p1, p2) => p1 | p2) }],
-        ["inv", { 'arity': 1, 'strict': true, 'fn': (x) => arithmetic(intConst(0), x, (p1, p2) => ~p2) }],
-        ["neg", { 'arity': 1, 'strict': true, 'fn': (x) => arithmetic(intConst(0), x, (p1, p2) => p1 - p2) }],
-        ["uneg", { 'arity': 1, 'strict': true, 'fn': (x) => arithmetic(intConst(0), x, (p1, p2) => p1 - p2) }],
-        ["shr", { 'arity': 2, 'strict': true, 'fn': (x, y) => arithmetic(x, y, (p1, p2) => p1 >>> p2) }],
-        ["ashr", { 'arity': 2, 'strict': true, 'fn': (x, y) => arithmetic(x, y, (p1, p2) => p1 >> p2) }],
-        ["shl", { 'arity': 2, 'strict': true, 'fn': (x, y) => arithmetic(x, y, (p1, p2) => p1 << p2) }],
-        ["raise", { 'arity': 1, 'strict': true, 'fn': (x) => { console.log("raised error: " + evalExpStr(x)); return strConst("raise") } }],
-        ["IO.performIO", { 'arity': 1, 'strict': false, 'fn': (x) => this.performIO(x) }],
-        ["seq", { 'arity': 2, 'strict': false, 'fn': (x, y) => { this.evaluate(x); return y } }],
-        ["fromUTF8", {
-            'arity': 1, 'strict': true,
-            'fn': (x) => { if (x.type === 'str') return mkString(x.value); throw Error("invalid string for fromUTF8") }
-        }],
-    ])
 
     indir(top: GraphN): GraphN {
         /**@brief follows indirection */
@@ -311,33 +251,7 @@ export class Evaluator {
                     [top, loopAgain] = evalCombExpr(top, lhs_stack)
                     break
                 case "funcref":
-                    if (this.noOpPrimops.has(top.name))
-                        loopAgain = false
-                    else {
-                        const func = this.functionMap.get(top.name)
-                        if (func !== undefined) {
-                            if (lhs_stack.length < func.arity) {
-                                loopAgain = false;
-                                // output will be the curried function
-                            }
-                            else {
-                                const args: GraphN[] = []
-                                if (func.strict)
-                                    for (let i = 0; i < func.arity; i++) {
-                                        args.push(this.evaluate(lhs_stack.pop()!.rhs))
-                                    }
-                                else
-                                    for (let i = 0; i < func.arity; i++) {
-                                        args.push(lhs_stack.pop()!.rhs)
-                                    }
-
-                                top = func.fn(...args)
-                            }
-                        }
-                        else {
-                            throw new Error("unknown function " + top.name)
-                        }
-                    }
+                    [top, loopAgain] = this.evalFuncExpr(top, lhs_stack)
                     break
                 default:
                     loopAgain = false
@@ -393,8 +307,114 @@ export class Evaluator {
 
         return node.rhs
     }
-}
 
+    performStrictFunc2(top: FuncRef, lhs_stack: App[], func: (x: GraphN, y: GraphN) => GraphN): [GraphN, boolean] {
+        if (lhs_stack.length < 2)
+            return [top, false]
+
+        const x = this.evaluate(lhs_stack.pop()!.rhs)
+        const y = this.evaluate(lhs_stack.pop()!.rhs)
+
+        const res = func(x, y)
+        return [res, true]
+    }
+
+    evalFuncExpr(top: FuncRef, lhs_stack: App[]): [GraphN, boolean] {
+        switch (top.name) {
+            case "IO.>>":
+            case "IO.>>=":
+            case "IO.return":
+            case "IO.print":
+            case "A.alloc":
+            case "A.read":
+            case "putb":
+            case "IO.stdout":
+                return [top, false]
+            case "+":
+            case "u+":
+                return this.performStrictFunc2(top, lhs_stack, (x, y) => arithmetic(x, y, (p1, p2) => p1 + p2))
+            case "-":
+            case "u-":
+                return this.performStrictFunc2(top, lhs_stack, (x, y) => arithmetic(x, y, (p1, p2) => p1 - p2))
+            case "*":
+            case "u*":
+                return this.performStrictFunc2(top, lhs_stack, (x, y) => arithmetic(x, y, (p1, p2) => p1 * p2))
+            case "quot":
+            case "uquot":
+                return this.performStrictFunc2(top, lhs_stack, (x, y) => arithmetic(x, y, (p1, p2) => p1 / p2 | 0))
+            case "rem":
+            case "urem":
+                return this.performStrictFunc2(top, lhs_stack, (x, y) => arithmetic(x, y, (p1, p2) => p1 % p2))
+            case "=": // for lambda calculus
+            case "==":
+            case "u==":
+                return this.performStrictFunc2(top, lhs_stack, (x, y) => comparison(x, y, (p1, p2) => p1 == p2))
+            case "/=":
+                return this.performStrictFunc2(top, lhs_stack, (x, y) => comparison(x, y, (p1, p2) => p1 != p2))
+            case "<=":
+            case "u<=":
+                return this.performStrictFunc2(top, lhs_stack, (x, y) => comparison(x, y, (p1, p2) => p1 <= p2))
+            case "<":
+            case "u<":
+                return this.performStrictFunc2(top, lhs_stack, (x, y) => comparison(x, y, (p1, p2) => p1 < p2))
+            case ">=":
+            case "u>=":
+                return this.performStrictFunc2(top, lhs_stack, (x, y) => comparison(x, y, (p1, p2) => p1 >= p2))
+            case ">":
+            case "u>":
+                return this.performStrictFunc2(top, lhs_stack, (x, y) => comparison(x, y, (p1, p2) => p1 > p2))
+            case "cmp":
+            case "ucmp":
+                return this.performStrictFunc2(top, lhs_stack, compare)
+            case "and":
+                return this.performStrictFunc2(top, lhs_stack, (x, y) => arithmetic(x, y, (p1, p2) => p1 & p2))
+            case "or":
+                return this.performStrictFunc2(top, lhs_stack, (x, y) => arithmetic(x, y, (p1, p2) => p1 | p2))
+            case "shr":
+                return this.performStrictFunc2(top, lhs_stack, (x, y) => arithmetic(x, y, (p1, p2) => p1 >>> p2))
+            case "ashr":
+                return this.performStrictFunc2(top, lhs_stack, (x, y) => arithmetic(x, y, (p1, p2) => p1 >> p2))
+            case "shl":
+                return this.performStrictFunc2(top, lhs_stack, (x, y) => arithmetic(x, y, (p1, p2) => p1 << p2))
+            case "inv": {
+                if (lhs_stack.length < 1) return [top, false]
+                const x = this.evaluate(lhs_stack.pop()!.rhs)
+                return [arithmetic(intConst(0), x, (p1, p2) => ~p2), true]
+            }
+            case "neg":
+            case "uneg": {
+                if (lhs_stack.length < 1) return [top, false]
+                const x = this.evaluate(lhs_stack.pop()!.rhs)
+                return [arithmetic(intConst(0), x, (p1, p2) => p1 - p2), true]
+            }
+            // case "raise": {
+            //     if (lhs_stack.length < 1) return [top, false]
+            //     const x = this.evaluate(lhs_stack.pop()!.rhs)
+            //     console.log("raised error: " + evalExpStr(x))
+            //     return [strConst("raise"), true]
+            // }
+            case "IO.performIO": {
+                if (lhs_stack.length < 1) return [top, false]
+                const x = lhs_stack.pop()!.rhs
+                return [this.performIO(x), true]
+            }
+            case "seq": {
+                if (lhs_stack.length < 2) return [top, false]
+                const x = this.evaluate(lhs_stack.pop()!.rhs)
+                const y = lhs_stack.pop()!.rhs
+                return [y, true]
+            }
+            case "fromUTF8": {
+                if (lhs_stack.length < 1) return [top, false]
+                const x = this.evaluate(lhs_stack.pop()!.rhs)
+                if (x.type === "str") return [mkString(x.value), true]
+                throw Error("invalid string for fromUTF8")
+            }
+            default:
+                throw new Error("unknown function " + top.name)
+        }
+    }
+}
 
 function evalCombExpr(top: Comb, lhs_stack: App[]): [GraphN, boolean] {
     switch (top.name) {
