@@ -1,3 +1,5 @@
+import { ParsingError } from "../errors";
+
 export enum mhsToken {
     eof,
     comb,
@@ -77,7 +79,7 @@ export class MhsLexer {
         }
 
         if (!/\d/.test(this.ch))
-            throw new Error("invalid number")
+            throw new ParsingError("invalid number")
         this.numVal = 0
         while (/\d/.test(this.ch)) {
             this.numVal *= 10

@@ -1,3 +1,4 @@
+import { EvaluationError } from './errors';
 import { GraphN, Pointer, PointedTo, App, combinator, app, intConst, strConst, Comb, Arr, mkString, FuncRef } from './types'
 
 export function makePointer(node: GraphN): Pointer {
@@ -12,7 +13,7 @@ function arithmetic(x: GraphN, y: GraphN, fn: (p1: number, p2: number) => number
     if (x.type === 'int' && y.type === 'int') {
         return intConst(fn(x.value, y.value))
     }
-    throw new Error("invalid types for arithmetic operation, try evaluating arguments first " + x.type + y.type)
+    throw new EvaluationError("invalid types for arithmetic operation, try evaluating arguments first " + x.type + y.type)
 }
 
 function arithmeticC(fn: (p1: number, p2: number) => number): (x: GraphN, y: GraphN) => GraphN {
@@ -30,7 +31,7 @@ function comparison(x: GraphN, y: GraphN, cmp: (p1: number, p2: number) => boole
             return combinator("K")
         }
     }
-    throw new Error("invalid types for arithmetic operation, try evaluating arguments first")
+    throw new EvaluationError("invalid types for arithmetic operation, try evaluating arguments first")
 }
 
 function comparisonC(cmp: (p1: number, p2: number) => boolean): (x: GraphN, y: GraphN) => GraphN {
@@ -43,7 +44,7 @@ function compare(x: GraphN, y: GraphN): GraphN {
         else if (x.value > y.value) return app(combinator("K"), combinator("A"))
         else return (combinator("K"), combinator("K"))
     }
-    throw new Error("invalid types for arithmetic operation, try evaluating arguments first")
+    throw new EvaluationError("invalid types for arithmetic operation, try evaluating arguments first")
 }
 
 function putCharFromInt(x: GraphN): GraphN {
@@ -52,7 +53,7 @@ function putCharFromInt(x: GraphN): GraphN {
         return strConst("putChar")
     }
     else
-        throw new Error("invalid node type")
+        throw new EvaluationError("invalid node type")
 }
 
 function isNamed(x: GraphN, name: string): boolean {
@@ -69,7 +70,7 @@ export class Evaluator {
     performIO(x: GraphN): GraphN {
         x = this.execio(x)
         if (x.type !== 'app' || !isNamed(this.indir(x.lhs), "IO.return"))
-            throw new Error("wrong performio")
+            throw new EvaluationError("wrong performio")
         return x.rhs
     }
 
@@ -87,7 +88,7 @@ export class Evaluator {
             case 'numref': {
                 const ref = this.pointers.get(top.value)
                 if (ref == undefined)
-                    throw new Error("Invalid shared expression reference: _" + top.value)
+                    throw new EvaluationError("Invalid shared expression reference: _" + top.value)
                 else
                     return ref
                 break;
@@ -151,7 +152,7 @@ export class Evaluator {
                 case "numref": {
                     const ref = this.pointers.get(top.value)
                     if (ref == undefined)
-                        throw new Error("Invalid shared expression reference: _" + top.value)
+                        throw new EvaluationError("Invalid shared expression reference: _" + top.value)
                     else
                         top = ref
                     break;
@@ -161,7 +162,7 @@ export class Evaluator {
                     switch (top.name) {
                         case "IO.print": {
                             if (lhs_stack.length < 2)
-                                throw new Error(top.name + " arguments missing")
+                                throw new EvaluationError(top.name + " arguments missing")
 
                             lhs_stack.pop() // handle/stream
                             const x = this.evaluate(lhs_stack.pop()!.rhs)
@@ -170,13 +171,13 @@ export class Evaluator {
                         }
                         case "IO.return": {
                             if (lhs_stack.length < 1)
-                                throw new Error(top.name + " arguments missing")
+                                throw new EvaluationError(top.name + " arguments missing")
 
                             return lhs_stack.pop()!.rhs
                         }
                         case "A.alloc": {
                             if (lhs_stack.length < 2)
-                                throw new Error(top.name + " arguments missing")
+                                throw new EvaluationError(top.name + " arguments missing")
                             const x = this.evaluate(lhs_stack.pop()!.rhs)
                             const y = makePointer(lhs_stack.pop()!.rhs)
 
@@ -188,23 +189,23 @@ export class Evaluator {
                                 const arrNode: Arr = { 'type': 'arr', 'array': arr }
                                 return arrNode
                             }
-                            throw new Error("invalid array size")
+                            throw new EvaluationError("invalid array size")
                         }
                         case "A.read": {
                             if (lhs_stack.length < 2)
-                                throw new Error(top.name + " arguments missing")
+                                throw new EvaluationError(top.name + " arguments missing")
                             const x = this.evaluate(lhs_stack.pop()!.rhs)
                             const y = this.evaluate(lhs_stack.pop()!.rhs)
 
                             if (x.type !== 'arr')
-                                throw new Error("A.read: invalid array")
+                                throw new EvaluationError("A.read: invalid array")
                             if (y.type !== 'int' || y.value < 0 || y.value >= x.array.length)
-                                throw new Error("Invalid array index")
+                                throw new EvaluationError("Invalid array index")
                             return x.array[y.value]
                         }
                         case "putb": {
                             if (lhs_stack.length < 2)
-                                throw new Error(top.name + " arguments missing")
+                                throw new EvaluationError(top.name + " arguments missing")
                             const x = this.evaluate(lhs_stack.pop()!.rhs)
                             lhs_stack.pop() // output stream/handle
 
@@ -212,11 +213,11 @@ export class Evaluator {
                             return combinator("I")
                         }
                         default:
-                            throw new Error("Unknown IO function: " + top.name)
+                            throw new EvaluationError("Unknown IO function: " + top.name)
                     }
                     break
                 default:
-                    throw new Error("cannot execute IO, invalid node type: " + top.type)
+                    throw new EvaluationError("cannot execute IO, invalid node type: " + top.type)
             }
         }
     }
@@ -244,7 +245,7 @@ export class Evaluator {
                 case 'numref': {
                     const ref = this.pointers.get(top.value)
                     if (ref == undefined)
-                        throw new Error("Invalid shared expression reference: _" + top.value)
+                        throw new EvaluationError("Invalid shared expression reference: _" + top.value)
                     else
                         top = ref
                     break;
@@ -273,7 +274,7 @@ export class Evaluator {
         }
 
         if (top.type === 'ptr' || top.type === 'numref')
-            throw new Error("invalid eval") // sanity check
+            throw new EvaluationError("invalid eval") // sanity check
 
         return top;
     }
@@ -413,7 +414,7 @@ export class Evaluator {
                 throw Error("invalid string for fromUTF8")
             }
             default:
-                throw new Error("unknown function " + top.name)
+                throw new EvaluationError("unknown function " + top.name)
         }
     }
 }
