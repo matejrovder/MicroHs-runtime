@@ -47,24 +47,22 @@ function compare(x: GraphN, y: GraphN): GraphN {
     throw new EvaluationError("invalid types for arithmetic operation, try evaluating arguments first")
 }
 
-function putCharFromInt(x: GraphN): GraphN {
-    if (x.type === 'int') {
-        process.stdout.write(String.fromCodePoint(x.value))
-        return strConst("putChar")
-    }
-    else
-        throw new EvaluationError("invalid node type")
-}
-
 function isNamed(x: GraphN, name: string): boolean {
     return (x.type === 'comb' || x.type === 'funcref') && x.name === name
 }
 
+export interface Output {
+    print(str: string): void
+    println(str: string): void
+}
+
 export class Evaluator {
     pointers: Map<number, Pointer>
+    output: Output
 
-    constructor(pointers: Map<number, Pointer> = new Map()) {
+    constructor(output: Output, pointers: Map<number, Pointer> = new Map()) {
         this.pointers = pointers
+        this.output = output
     }
 
     performIO(x: GraphN): GraphN {
@@ -73,6 +71,15 @@ export class Evaluator {
             throw new EvaluationError("wrong performio")
         return x.rhs
     }
+
+    putCharFromInt(x: GraphN): GraphN {
+    if (x.type === 'int') {
+        this.output.print(String.fromCodePoint(x.value))
+        return strConst("putChar")
+    }
+    else
+        throw new EvaluationError("invalid node type")
+}
 
     indir(top: GraphN): GraphN {
         /**@brief follows indirection */
@@ -166,7 +173,7 @@ export class Evaluator {
 
                             lhs_stack.pop() // handle/stream
                             const x = this.evaluate(lhs_stack.pop()!.rhs)
-                            console.log(evalExpStr(x))
+                            this.output.println(evalExpStr(x))
                             return combinator("I")
                         }
                         case "IO.return": {
@@ -209,7 +216,7 @@ export class Evaluator {
                             const x = this.evaluate(lhs_stack.pop()!.rhs)
                             lhs_stack.pop() // output stream/handle
 
-                            putCharFromInt(x)
+                            this.putCharFromInt(x)
                             return combinator("I")
                         }
                         default:
@@ -393,7 +400,7 @@ export class Evaluator {
             // case "raise": {
             //     if (lhs_stack.length < 1) return [top, false]
             //     const x = this.evaluate(lhs_stack.pop()!.rhs)
-            //     console.log("raised error: " + evalExpStr(x))
+            //     this.output.println("raised error: " + evalExpStr(x))
             //     return [strConst("raise"), true]
             // }
             case "IO.performIO": {
