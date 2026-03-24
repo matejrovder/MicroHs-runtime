@@ -19,12 +19,6 @@ function arithmeticC(fn: (p1: number, p2: number) => number): (x: GraphN, y: Gra
     return (x: GraphN, y: GraphN) => arithmetic(x, y, fn)
 }
 
-function printFunction(x: GraphN): GraphN {
-    console.log("OUTPUT: " + evalExpStr(x) + "\n")
-
-    return strConst("print")
-}
-
 function comparison(x: GraphN, y: GraphN, cmp: (p1: number, p2: number) => boolean): GraphN {
     if (x.type === 'int' && y.type === 'int') {
         if (cmp(x.value, y.value)) {
