@@ -15,6 +15,10 @@ function arithmetic(x: GraphN, y: GraphN, fn: (p1: number, p2: number) => number
     throw new Error("invalid types for arithmetic operation, try evaluating arguments first " + x.type + y.type)
 }
 
+function arithmeticC(fn: (p1: number, p2: number) => number): (x: GraphN, y: GraphN) => GraphN {
+    return (x: GraphN, y: GraphN) => arithmetic(x, y, fn)
+}
+
 function printFunction(x: GraphN): GraphN {
     console.log("OUTPUT: " + evalExpStr(x) + "\n")
 
@@ -33,6 +37,10 @@ function comparison(x: GraphN, y: GraphN, cmp: (p1: number, p2: number) => boole
         }
     }
     throw new Error("invalid types for arithmetic operation, try evaluating arguments first")
+}
+
+function comparisonC(cmp: (p1: number, p2: number) => boolean): (x: GraphN, y: GraphN) => GraphN {
+    return (x: GraphN, y: GraphN) => comparison(x, y, cmp)
 }
 
 function compare(x: GraphN, y: GraphN): GraphN {
@@ -332,50 +340,50 @@ export class Evaluator {
                 return [top, false]
             case "+":
             case "u+":
-                return this.performStrictFunc2(top, lhs_stack, (x, y) => arithmetic(x, y, (p1, p2) => p1 + p2))
+                return this.performStrictFunc2(top, lhs_stack, arithmeticC((p1, p2) => p1 + p2))
             case "-":
             case "u-":
-                return this.performStrictFunc2(top, lhs_stack, (x, y) => arithmetic(x, y, (p1, p2) => p1 - p2))
+                return this.performStrictFunc2(top, lhs_stack, arithmeticC((p1, p2) => p1 - p2))
             case "*":
             case "u*":
-                return this.performStrictFunc2(top, lhs_stack, (x, y) => arithmetic(x, y, (p1, p2) => p1 * p2))
+                return this.performStrictFunc2(top, lhs_stack, arithmeticC((p1, p2) => p1 * p2))
             case "quot":
             case "uquot":
-                return this.performStrictFunc2(top, lhs_stack, (x, y) => arithmetic(x, y, (p1, p2) => p1 / p2 | 0))
+                return this.performStrictFunc2(top, lhs_stack, arithmeticC((p1, p2) => p1 / p2 | 0))
             case "rem":
             case "urem":
-                return this.performStrictFunc2(top, lhs_stack, (x, y) => arithmetic(x, y, (p1, p2) => p1 % p2))
+                return this.performStrictFunc2(top, lhs_stack, arithmeticC((p1, p2) => p1 % p2))
             case "=": // for lambda calculus
             case "==":
             case "u==":
-                return this.performStrictFunc2(top, lhs_stack, (x, y) => comparison(x, y, (p1, p2) => p1 == p2))
+                return this.performStrictFunc2(top, lhs_stack, comparisonC((p1, p2) => p1 == p2))
             case "/=":
-                return this.performStrictFunc2(top, lhs_stack, (x, y) => comparison(x, y, (p1, p2) => p1 != p2))
+                return this.performStrictFunc2(top, lhs_stack, comparisonC((p1, p2) => p1 != p2))
             case "<=":
             case "u<=":
-                return this.performStrictFunc2(top, lhs_stack, (x, y) => comparison(x, y, (p1, p2) => p1 <= p2))
+                return this.performStrictFunc2(top, lhs_stack, comparisonC((p1, p2) => p1 <= p2))
             case "<":
             case "u<":
-                return this.performStrictFunc2(top, lhs_stack, (x, y) => comparison(x, y, (p1, p2) => p1 < p2))
+                return this.performStrictFunc2(top, lhs_stack, comparisonC((p1, p2) => p1 < p2))
             case ">=":
             case "u>=":
-                return this.performStrictFunc2(top, lhs_stack, (x, y) => comparison(x, y, (p1, p2) => p1 >= p2))
+                return this.performStrictFunc2(top, lhs_stack, comparisonC((p1, p2) => p1 >= p2))
             case ">":
             case "u>":
-                return this.performStrictFunc2(top, lhs_stack, (x, y) => comparison(x, y, (p1, p2) => p1 > p2))
+                return this.performStrictFunc2(top, lhs_stack, comparisonC((p1, p2) => p1 > p2))
             case "cmp":
             case "ucmp":
                 return this.performStrictFunc2(top, lhs_stack, compare)
             case "and":
-                return this.performStrictFunc2(top, lhs_stack, (x, y) => arithmetic(x, y, (p1, p2) => p1 & p2))
+                return this.performStrictFunc2(top, lhs_stack, arithmeticC((p1, p2) => p1 & p2))
             case "or":
-                return this.performStrictFunc2(top, lhs_stack, (x, y) => arithmetic(x, y, (p1, p2) => p1 | p2))
+                return this.performStrictFunc2(top, lhs_stack, arithmeticC((p1, p2) => p1 | p2))
             case "shr":
-                return this.performStrictFunc2(top, lhs_stack, (x, y) => arithmetic(x, y, (p1, p2) => p1 >>> p2))
+                return this.performStrictFunc2(top, lhs_stack, arithmeticC((p1, p2) => p1 >>> p2))
             case "ashr":
-                return this.performStrictFunc2(top, lhs_stack, (x, y) => arithmetic(x, y, (p1, p2) => p1 >> p2))
+                return this.performStrictFunc2(top, lhs_stack, arithmeticC((p1, p2) => p1 >> p2))
             case "shl":
-                return this.performStrictFunc2(top, lhs_stack, (x, y) => arithmetic(x, y, (p1, p2) => p1 << p2))
+                return this.performStrictFunc2(top, lhs_stack, arithmeticC((p1, p2) => p1 << p2))
             case "inv": {
                 if (lhs_stack.length < 1) return [top, false]
                 const x = this.evaluate(lhs_stack.pop()!.rhs)
@@ -400,7 +408,7 @@ export class Evaluator {
             }
             case "seq": {
                 if (lhs_stack.length < 2) return [top, false]
-                const x = this.evaluate(lhs_stack.pop()!.rhs)
+                this.evaluate(lhs_stack.pop()!.rhs) // evaluate x
                 const y = lhs_stack.pop()!.rhs
                 return [y, true]
             }
