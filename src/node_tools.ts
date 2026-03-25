@@ -1,4 +1,6 @@
-import { Output } from "./eval"
+import { Input, Output } from "./eval"
+const readline = require('readline')
+const fs = require('fs')
 
 export class StandardOutput implements Output {
     print(str: string): void {
@@ -7,5 +9,31 @@ export class StandardOutput implements Output {
     println(str: string): void {
         process.stdout.write(str)
         process.stdout.write("\n")
+    }
+}
+
+// export class StandardInput implements Input {
+//     rl = null
+//     buffer: string | null = null;
+
+//     constructor() {
+//         this.rl = readline.createInterface({
+//             input: process.stdin,
+//         })
+//     }
+//     getChar(): string {
+//         if (this.buffer === null)
+//             this.buffer = this.rl.
+//     }
+// }
+
+export class StandardInput implements Input {
+    getChar(): string {
+        const buffer = Buffer.alloc(1)
+        fs.readSync(0, buffer, 0, 1)
+        const str = buffer.toString('utf8')
+        if (str.length !== 1)
+            throw new Error("standard input error")
+        return str
     }
 }

@@ -1,4 +1,4 @@
-import { EvaluationError } from './errors';
+import { EvaluationError, ProgramRaisedError } from './errors';
 import { GraphN, Pointer, PointedTo, App, combinator, app, intConst, strConst, Comb, Arr, mkString, FuncRef } from './types'
 
 export function makePointer(node: GraphN): Pointer {
@@ -56,13 +56,19 @@ export interface Output {
     println(str: string): void
 }
 
+export interface Input {
+    getChar(): string
+}
+
 export class Evaluator {
     pointers: Map<number, Pointer>
     output: Output
+    input: Input
 
-    constructor(output: Output, pointers: Map<number, Pointer> = new Map()) {
+    constructor(output: Output, input: Input, pointers: Map<number, Pointer> = new Map()) {
         this.pointers = pointers
         this.output = output
+        this.input = input
     }
 
     performIO(x: GraphN): GraphN {
@@ -73,13 +79,13 @@ export class Evaluator {
     }
 
     putCharFromInt(x: GraphN): GraphN {
-    if (x.type === 'int') {
-        this.output.print(String.fromCodePoint(x.value))
-        return strConst("putChar")
+        if (x.type === 'int') {
+            this.output.print(String.fromCodePoint(x.value))
+            return strConst("putChar")
+        }
+        else
+            throw new EvaluationError("invalid node type")
     }
-    else
-        throw new EvaluationError("invalid node type")
-}
 
     indir(top: GraphN): GraphN {
         /**@brief follows indirection */
@@ -219,6 +225,13 @@ export class Evaluator {
                             this.putCharFromInt(x)
                             return combinator("I")
                         }
+                        case "getb": {
+                            if (lhs_stack.length < 1)
+                                throw new EvaluationError(top.name + " arguments missing")
+                            lhs_stack.pop() // input stream/handle
+
+                            return intConst(this.input.getChar().codePointAt(0)!)
+                        }
                         default:
                             throw new EvaluationError("Unknown IO function: " + top.name)
                     }
@@ -338,7 +351,9 @@ export class Evaluator {
             case "A.alloc":
             case "A.read":
             case "putb":
+            case "getb":
             case "IO.stdout":
+            case "IO.stdin":
                 return [top, false]
             case "+":
             case "u+":
@@ -397,12 +412,14 @@ export class Evaluator {
                 const x = this.evaluate(lhs_stack.pop()!.rhs)
                 return [arithmetic(intConst(0), x, (p1, p2) => p1 - p2), true]
             }
-            // case "raise": {
-            //     if (lhs_stack.length < 1) return [top, false]
-            //     const x = this.evaluate(lhs_stack.pop()!.rhs)
-            //     this.output.println("raised error: " + evalExpStr(x))
-            //     return [strConst("raise"), true]
-            // }
+            case "raise": {
+                // TODO: improve
+                if (lhs_stack.length < 1) return [top, false]
+                const x = this.evaluate(lhs_stack.pop()!.rhs)
+                throw new ProgramRaisedError(x.type === 'str' ? x.value : evalExpStr(x))
+                // this.output.println("raised error: " + evalExpStr(x))
+                // return [strConst("raise"), true]
+            }
             case "IO.performIO": {
                 if (lhs_stack.length < 1) return [top, false]
                 const x = lhs_stack.pop()!.rhs

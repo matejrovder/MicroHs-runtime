@@ -1,5 +1,5 @@
 import { evalExpStr, Evaluator } from "../eval"
-import { StandardOutput } from "../node_tools"
+import { StandardInput, StandardOutput } from "../node_tools"
 import { MhsParser } from "./mhs_parser"
 
 const fs = require('fs')
@@ -12,7 +12,7 @@ if (process.argv.length < 3) {
 const input = fs.readFileSync(process.argv[2]).toString()
 
 const [top, pointers] = new MhsParser(input).parse()
-const evaluator = new Evaluator(new StandardOutput, pointers)
+const evaluator = new Evaluator(new StandardOutput, new StandardInput, pointers)
 const ev = evaluator.execio(top)
 
 const match = evaluator.match1("IO.return", ev)

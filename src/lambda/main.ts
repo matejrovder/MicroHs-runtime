@@ -2,7 +2,7 @@ import { expStr, GraphN } from '../types'
 import { compileSKI } from "./ski_compile";
 import { Parser } from './parser'
 import { evalExpStr, Evaluator } from '../eval'
-import { StandardOutput } from '../node_tools';
+import { StandardInput, StandardOutput } from '../node_tools';
 
 const fs = require('fs')
 
@@ -18,7 +18,7 @@ let ski = compileSKI(n);
 console.log(ski);
 console.log(expStr(ski));
 
-let etor = new Evaluator(new StandardOutput)
+let etor = new Evaluator(new StandardOutput, new StandardInput)
 let ev: GraphN = etor.evaluate(ski)
 console.log(evalExpStr(ev))
 
