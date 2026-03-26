@@ -413,12 +413,14 @@ export class Evaluator {
                 return [arithmetic(intConst(0), x, (p1, p2) => p1 - p2), true]
             }
             case "raise": {
-                // TODO: improve
                 if (lhs_stack.length < 1) return [top, false]
-                const x = this.evaluate(lhs_stack.pop()!.rhs)
-                throw new ProgramRaisedError(x.type === 'str' ? x.value : evalExpStr(x))
-                // this.output.println("raised error: " + evalExpStr(x))
-                // return [strConst("raise"), true]
+                const ex = lhs_stack.pop()!.rhs
+                console.log(evalExpStr(ex))
+                const combShowExn = app(combinator("U"), app(combinator("U"), app(combinator("K2"), combinator("A"))))
+                const x = this.consToString(this.evaluate(app(combShowExn, ex)))
+                // MicroHs magic
+
+                throw new ProgramRaisedError(x)
             }
             case "IO.performIO": {
                 if (lhs_stack.length < 1) return [top, false]
@@ -441,7 +443,30 @@ export class Evaluator {
                 throw new EvaluationError("unknown function " + top.name)
         }
     }
+
+    consToString(node: GraphN): string {
+        let res = ""
+        while (true) {
+            node = this.evaluate(node)
+            if (isNamed(node, "K"))
+                return res
+            const match = this.match2("O", node)
+            if (match === null)
+                break
+            const [cc, next] = match
+            const c = this.evaluate(cc)
+            if (c.type !== 'int')
+                throw new EvaluationError("invalid char")
+            if (c.value > 0x80)
+                res += "?"
+            res += String.fromCharCode(c.value)
+            node = next
+        }
+
+        throw new EvaluationError("invalid cons string")
+    }
 }
+
 
 function evalCombExpr(top: Comb, lhs_stack: App[]): [GraphN, boolean] {
     switch (top.name) {
