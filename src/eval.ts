@@ -465,6 +465,46 @@ export class Evaluator {
 
         throw new EvaluationError("invalid cons string")
     }
+
+
+    evalExpStr(term: GraphN, depth: number): string {
+        if (depth <= 0)
+            return ">...<"
+        switch (term.type) {
+            case "numref":
+                return "_" + term.value + this.evalExpStr(this.pointers.get(term.value)!, depth - 1)
+            case "ptr": {
+                const evaluated = term.value.evaluated ? "T" : "F"
+                return "ptr,e=" + evaluated + "( " + this.evalExpStr(term.value.term, depth - 1) + " )"
+            }
+            case "comb":
+            case "funcref":
+                return term.name;
+            case "str":
+                if (term.value.length > 20)
+                    return "string"
+                return "string \"" + term.value + "\""
+            // return term.value;
+            case "int":
+                return term.value.toString();
+            case "app":
+                {
+                    return " ( " + this.evalExpStr(term.lhs, depth - 1) + " " + this.evalExpStr(term.rhs, depth - 1) + " ) ";
+                }
+            case "arr":
+                if (term.array.length > 5)
+                    return "[...]"
+                else {
+                    let res = "[ "
+                    term.array.forEach(x => { res = res += this.evalExpStr(x, depth - 1) + ", " })
+                    res += " ]"
+                    return res
+                }
+            default:
+                throw new Error("invalid lambda term type");
+        }
+    }
+
 }
 
 
