@@ -9,18 +9,26 @@ export function makePointer(node: GraphN): Pointer {
     return { 'type': "ptr", 'value': pointedTo }
 }
 
-function arithmetic(x: GraphN, y: GraphN, fn: (p1: number, p2: number) => number): GraphN {
+function arithmetic(x: GraphN, y: GraphN, fn: (p1: bigint, p2: bigint) => bigint): GraphN {
     if (x.type === 'int' && y.type === 'int') {
         return intConst(fn(x.value, y.value))
     }
     throw new EvaluationError("invalid types for arithmetic operation, try evaluating arguments first " + x.type + y.type)
 }
 
-function arithmeticC(fn: (p1: number, p2: number) => number): (x: GraphN, y: GraphN) => GraphN {
+function arithmeticC(fn: (p1: bigint, p2: bigint) => bigint): (x: GraphN, y: GraphN) => GraphN {
     return (x: GraphN, y: GraphN) => arithmetic(x, y, fn)
 }
 
-function comparison(x: GraphN, y: GraphN, cmp: (p1: number, p2: number) => boolean): GraphN {
+function arithmeticCU(fn: (p1: bigint, p2: bigint) => bigint): (x: GraphN, y: GraphN) => GraphN {
+    return (x: GraphN, y: GraphN) => arithmetic(x, y, (x, y) => BigInt.asUintN(64, fn(x, y)))
+}
+
+function arithmeticCI(fn: (p1: bigint, p2: bigint) => bigint): (x: GraphN, y: GraphN) => GraphN {
+    return (x: GraphN, y: GraphN) => arithmetic(x, y, (x, y) => BigInt.asIntN(64, fn(x, y)))
+}
+
+function comparison(x: GraphN, y: GraphN, cmp: (p1: bigint, p2: bigint) => boolean): GraphN {
     if (x.type === 'int' && y.type === 'int') {
         if (cmp(x.value, y.value)) {
             // true and false values are flipped???
@@ -34,7 +42,7 @@ function comparison(x: GraphN, y: GraphN, cmp: (p1: number, p2: number) => boole
     throw new EvaluationError("invalid types for arithmetic operation, try evaluating arguments first")
 }
 
-function comparisonC(cmp: (p1: number, p2: number) => boolean): (x: GraphN, y: GraphN) => GraphN {
+function comparisonC(cmp: (p1: bigint, p2: bigint) => boolean): (x: GraphN, y: GraphN) => GraphN {
     return (x: GraphN, y: GraphN) => comparison(x, y, cmp)
 }
 
@@ -46,6 +54,16 @@ function threeWayCompare(x: GraphN, y: GraphN): GraphN {
     }
     throw new EvaluationError("invalid types for arithmetic operation, try evaluating arguments first")
 }
+
+// function ucompare(x: GraphN, y: GraphN): GraphN {
+//     if (x.type === 'int' && y.type === 'int') {
+//         const xu = x.value >>> 0, yu =  y.value >>> 0
+//         if (xu < yu) return app(combinator("Z"), combinator("K"))
+//         else if (xu > yu) return app(combinator("K"), combinator("A"))
+//         else return (combinator("K"), combinator("K"))
+//     }
+//     throw new EvaluationError("invalid types for arithmetic operation, try evaluating arguments first")
+// }
 
 function isNamed(x: GraphN, name: string): boolean {
     return (x.type === 'comb' || x.type === 'funcref') && x.name === name
@@ -61,11 +79,11 @@ export interface Input {
 }
 
 export class Evaluator {
-    pointers: Map<number, Pointer>
+    pointers: Map<bigint, Pointer>
     output: Output
     input: Input
 
-    constructor(output: Output, input: Input, pointers: Map<number, Pointer> = new Map()) {
+    constructor(output: Output, input: Input, pointers: Map<bigint, Pointer> = new Map()) {
         this.pointers = pointers
         this.output = output
         this.input = input
@@ -80,7 +98,8 @@ export class Evaluator {
 
     putCharFromInt(x: GraphN): GraphN {
         if (x.type === 'int') {
-            this.output.print(String.fromCodePoint(x.value))
+            console.log("putb " + x.value)
+            this.output.print(String.fromCodePoint(Number(x.value)))
             return strConst("putChar")
         }
         else
@@ -117,7 +136,9 @@ export class Evaluator {
 
         while (true) {
             // label start in mhs code
+            console.error("execio eval " + this.evalExpStr(top, 7))
             const whnf = this.evaluate(top)
+            console.error("execio whnf " + this.evalExpStr(whnf, 7))
 
             const bindMatch = this.match2("IO.>>=", whnf)
             if (bindMatch) {
@@ -214,7 +235,7 @@ export class Evaluator {
                                 throw new EvaluationError("A.read: invalid array")
                             if (y.type !== 'int' || y.value < 0 || y.value >= x.array.length)
                                 throw new EvaluationError("Invalid array index")
-                            return x.array[y.value]
+                            return x.array[Number(y.value)]
                         }
                         case "putb": {
                             if (lhs_stack.length < 2)
@@ -230,7 +251,7 @@ export class Evaluator {
                                 throw new EvaluationError(top.name + " arguments missing")
                             lhs_stack.pop() // input stream/handle
 
-                            return intConst(this.input.getChar().codePointAt(0)!)
+                            return intConst(BigInt(this.input.getChar().codePointAt(0)!))
                         }
                         default:
                             throw new EvaluationError("Unknown IO function: " + top.name)
@@ -346,6 +367,7 @@ export class Evaluator {
         switch (top.name) {
             case "IO.>>":
             case "IO.>>=":
+                throw new Error("io comb")
             case "IO.return":
             case "IO.print":
             case "A.alloc":
@@ -363,21 +385,32 @@ export class Evaluator {
                 const y = this.evaluate(lhs_stack.pop()!.rhs)
                 return [(evalExpStr(x) === evalExpStr(y)) ? combinator("A") : combinator("K"), true]
             }
+            case "DUMP": {
+                if (lhs_stack.length < 1) return [top, false]
+                const x = lhs_stack.pop()!.rhs
+                console.log(this.evalExpStr(x, 6))
+                return [strConst("DUMP"), true]
+            }
             case "+":
+                return this.performStrictFunc2(top, lhs_stack, arithmeticCI((p1, p2) => p1 + p2))
             case "u+":
-                return this.performStrictFunc2(top, lhs_stack, arithmeticC((p1, p2) => p1 + p2))
+                return this.performStrictFunc2(top, lhs_stack, arithmeticCU((p1, p2) => p1 + p2))
             case "-":
+                return this.performStrictFunc2(top, lhs_stack, arithmeticCI((p1, p2) => p1 - p2))
             case "u-":
-                return this.performStrictFunc2(top, lhs_stack, arithmeticC((p1, p2) => p1 - p2))
+                return this.performStrictFunc2(top, lhs_stack, arithmeticCU((p1, p2) => p1 - p2))
             case "*":
+                return this.performStrictFunc2(top, lhs_stack, arithmeticCI((p1, p2) => p1 * p2))
             case "u*":
-                return this.performStrictFunc2(top, lhs_stack, arithmeticC((p1, p2) => p1 * p2))
+                return this.performStrictFunc2(top, lhs_stack, arithmeticCU((p1, p2) => p1 * p2))
             case "quot":
+                return this.performStrictFunc2(top, lhs_stack, arithmeticCI((p1, p2) => p1 / p2))
             case "uquot":
-                return this.performStrictFunc2(top, lhs_stack, arithmeticC((p1, p2) => p1 / p2 | 0))
+                return this.performStrictFunc2(top, lhs_stack, arithmeticCU((p1, p2) => p1 / p2))
             case "rem":
+                return this.performStrictFunc2(top, lhs_stack, arithmeticCI((p1, p2) => p1 % p2))
             case "urem":
-                return this.performStrictFunc2(top, lhs_stack, arithmeticC((p1, p2) => p1 % p2))
+                return this.performStrictFunc2(top, lhs_stack, arithmeticCU((p1, p2) => p1 % p2))
             case "=": // for lambda calculus
             case "==":
             case "u==":
@@ -400,25 +433,29 @@ export class Evaluator {
             case "ucmp":
                 return this.performStrictFunc2(top, lhs_stack, threeWayCompare)
             case "and":
-                return this.performStrictFunc2(top, lhs_stack, arithmeticC((p1, p2) => p1 & p2))
+                return this.performStrictFunc2(top, lhs_stack, arithmeticCU((p1, p2) => p1 & p2))
             case "or":
-                return this.performStrictFunc2(top, lhs_stack, arithmeticC((p1, p2) => p1 | p2))
+                return this.performStrictFunc2(top, lhs_stack, arithmeticCU((p1, p2) => p1 | p2))
             case "shr":
-                return this.performStrictFunc2(top, lhs_stack, arithmeticC((p1, p2) => p1 >>> p2))
+                return this.performStrictFunc2(top, lhs_stack, arithmeticCU((p1, p2) => p1 >> p2))
             case "ashr":
-                return this.performStrictFunc2(top, lhs_stack, arithmeticC((p1, p2) => p1 >> p2))
+                return this.performStrictFunc2(top, lhs_stack, arithmeticCU((p1, p2) => BigInt.asIntN(64, p1) >> p2))
             case "shl":
-                return this.performStrictFunc2(top, lhs_stack, arithmeticC((p1, p2) => p1 << p2))
+                return this.performStrictFunc2(top, lhs_stack, arithmeticCU((p1, p2) => p1 << p2))
             case "inv": {
                 if (lhs_stack.length < 1) return [top, false]
                 const x = this.evaluate(lhs_stack.pop()!.rhs)
-                return [arithmetic(intConst(0), x, (p1, p2) => ~p2), true]
+                return [arithmetic(intConst(0n), x, (p1, p2) => BigInt.asUintN(64, ~p2)), true]
             }
-            case "neg":
+            case "neg": {
+                if (lhs_stack.length < 1) return [top, false]
+                const x = this.evaluate(lhs_stack.pop()!.rhs)
+                return [arithmetic(intConst(0n), x, (p1, p2) => BigInt.asIntN(64, p1 - p2)), true]
+            }
             case "uneg": {
                 if (lhs_stack.length < 1) return [top, false]
                 const x = this.evaluate(lhs_stack.pop()!.rhs)
-                return [arithmetic(intConst(0), x, (p1, p2) => p1 - p2), true]
+                return [arithmetic(intConst(0n), x, (p1, p2) => BigInt.asUintN(64, p1 - p2)), true]
             }
             case "raise": {
                 if (lhs_stack.length < 1) return [top, false]
@@ -467,7 +504,7 @@ export class Evaluator {
             if (c.value > 0x80)
                 res += "?"
             else
-                res += String.fromCharCode(c.value)
+                res += String.fromCharCode(Number(c.value))
             node = next
         }
 

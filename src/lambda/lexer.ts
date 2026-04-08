@@ -12,7 +12,7 @@ export class Lexer {
     buffer: string;
     offset: number;
     varIdentifier: string = "";
-    numVal: number = 0;
+    numVal: bigint = 0n;
     ch: string;
 
     constructor(buffer: string) {
@@ -70,11 +70,11 @@ export class Lexer {
 
             default:
                 if (/\d/.test(this.ch)) {
-                    this.numVal = parseInt(this.ch);
+                    this.numVal = BigInt(parseInt(this.ch));
                     this.ch = this.getChar();
                     while (/\d/.test(this.ch)) {
-                        this.numVal *= 10;
-                        this.numVal += parseInt(this.ch);
+                        this.numVal *= 10n;
+                        this.numVal += BigInt(parseInt(this.ch));
                         this.ch = this.getChar()
                     }
                     return token.number

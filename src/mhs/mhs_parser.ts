@@ -31,9 +31,9 @@ export class MhsParser {
         return this.currentToken;
     }
 
-    parse(): [GraphN, Map<number, Pointer>] {
+    parse(): [GraphN, Map<bigint, Pointer>] {
         const stack: GraphN[] = []
-        const pointers: Map<number, Pointer> = new Map()
+        const pointers: Map<bigint, Pointer> = new Map()
         while (true) {
             switch (this.currentToken) {
                 case mhsToken.comb:

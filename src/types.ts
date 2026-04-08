@@ -30,7 +30,7 @@ type Str = {
 
 type Int = {
     type: 'int';
-    value: number;
+    value: bigint;
 }
 
 type FuncRef = {
@@ -51,7 +51,7 @@ type PointedTo = {
 
 type NumberedRef = {
     type: 'numref'
-    value: number
+    value: bigint
 }
 
 type GraphN = App | Const | Pointer | NumberedRef
@@ -69,14 +69,14 @@ function mkCons(x: GraphN, xs: GraphN): App {
 function mkString(x: string): App | Const {
     let res: Const | App = combinator("K") // false/nil combinator
     for (let i = x.length - 1; i >= 0; i--) {
-        const ord = intConst(x.charCodeAt(i))
+        const ord = intConst(BigInt(x.charCodeAt(i)))
         res = mkCons(ord, res)
     }
 
     return res
 }
 
-function intConst(x: number): Const {
+function intConst(x: bigint): Const {
     return { "type": "int", "value": x }
 }
 
@@ -119,5 +119,8 @@ function expStr(term: LT | GraphN): string {
             throw new Error("invalid lambda term type");
     }
 }
+
+export const U64_MAX = 18446744073709551615n
+export const I64_MAX = 9223372036854775808n
 
 export { GraphN, Pointer, PointedTo, Var, App, Const, Arr, Comb, Str, Int, FuncRef, combinator, strConst, mkString, intConst, app, funcref, expStr }

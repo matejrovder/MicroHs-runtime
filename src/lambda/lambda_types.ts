@@ -28,7 +28,7 @@ function strConst(x: string): Str {
     return { "type": "str", "value": x }
 }
 
-function intConst(x: number): Int {
+function intConst(x: bigint): Int {
     return { "type": "int", "value": x }
 }
 

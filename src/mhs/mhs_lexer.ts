@@ -43,7 +43,7 @@ export class MhsLexer {
     buffer: string;
     offset: number;
     stringVal: string = "";
-    numVal: number = 0;
+    numVal: bigint = 0n;
     ch: string;
 
     constructor(buffer: string) {
@@ -80,14 +80,14 @@ export class MhsLexer {
 
         if (!/\d/.test(this.ch))
             throw new ParsingError("invalid number")
-        this.numVal = 0
+        this.numVal = 0n
         while (/\d/.test(this.ch)) {
-            this.numVal *= 10
-            this.numVal += parseInt(this.ch)
+            this.numVal *= 10n
+            this.numVal += BigInt(parseInt(this.ch))
             this.ch = this.getChar()
         }
         if (minus)
-            this.numVal *= -1
+            this.numVal *= -1n
     }
 
     private readFnName(): void {
