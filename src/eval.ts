@@ -355,6 +355,14 @@ export class Evaluator {
             case "IO.stdout":
             case "IO.stdin":
                 return [top, false]
+            case "equal":
+            case "sequal": {
+                // TODO: terrible hack
+                if (lhs_stack.length < 2) return [top, false]
+                const x = this.evaluate(lhs_stack.pop()!.rhs)
+                const y = this.evaluate(lhs_stack.pop()!.rhs)
+                return [(evalExpStr(x) === evalExpStr(y)) ? combinator("A") : combinator("K"), true]
+            }
             case "+":
             case "u+":
                 return this.performStrictFunc2(top, lhs_stack, arithmeticC((p1, p2) => p1 + p2))
