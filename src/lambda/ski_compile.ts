@@ -23,6 +23,7 @@ function optimizeCombS(term1: LT, term2: LT): LT {
             return ltapp(combinator("K"), ltapp(t1r, t2r))
     }
 
+    // replaces eta
     if (term1.type === 'ltapp' && isComb(term1.lhs, "K") && isComb(term2, "I")) {
         return term1.rhs
     }
@@ -54,6 +55,7 @@ function optimizeCombS(term1: LT, term2: LT): LT {
 
 function ensureSKI(term: LT): GraphN {
     switch (term.type) {
+        case "str":
         case "int":
         case "funcref":
         case "comb":
@@ -72,7 +74,7 @@ function ensureSKI(term: LT): GraphN {
                 return app(ensureSKI(term.lhs), ensureSKI(term.rhs));
             }
         default:
-            throw new Error("invalid lambda term type");
+            throw new Error("invalid lambda term type: "+ term.type);
     }
 }
 
