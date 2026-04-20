@@ -116,10 +116,6 @@ function abstractSKI(term: LT, absVariable: string): LT {
 function _compileSKI(term: LT): LT {
     switch (term.type) {
         case "var":
-            {
-                console.log("_compileSKI WARNING: variable " + term.varN + " present in the expression")
-                return strConst(term.varN);
-            }
         case "int":
         case "funcref":
         case "comb":

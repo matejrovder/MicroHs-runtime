@@ -50,6 +50,8 @@ function contains(term: LT, variable: string): boolean {
             {
                 return term.varN === variable;
             }
+        case "str":
+            return false
         case "int":
         case "funcref":
         case "comb":

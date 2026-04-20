@@ -14,6 +14,9 @@ function test(name: string, input: string, output: string) {
         console.log("Expected: " + expStr(expected))
         console.log("Actual: " + expStr(compiled))
     }
+    else {
+        console.log("Test " + name + " success.")
+    }
 }
 
 test("plus", "(\\ x . plus x x ) five", "S plus I five")
