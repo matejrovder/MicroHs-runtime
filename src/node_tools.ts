@@ -1,4 +1,4 @@
-import { Input, Output } from "./eval"
+import { Input, Output } from "./mhs/mhs_eval"
 const readline = require('readline')
 const fs = require('fs')
 

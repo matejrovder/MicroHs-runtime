@@ -1,5 +1,5 @@
-import { EvaluationError, ProgramRaisedError } from './errors';
-import { GraphN, Pointer, PointedTo, App, combinator, app, intConst, strConst, Comb, Arr, mkString, FuncRef } from './types'
+import { EvaluationError } from '../errors';
+import { GraphN, Pointer, PointedTo, App, combinator, app, intConst,  Comb, FuncRef } from '../types'
 
 export function makePointer(node: GraphN): Pointer {
     if (node.type === 'ptr')
@@ -23,12 +23,10 @@ function arithmeticC(fn: (p1: number, p2: number) => number): (x: GraphN, y: Gra
 function comparison(x: GraphN, y: GraphN, cmp: (p1: number, p2: number) => boolean): GraphN {
     if (x.type === 'int' && y.type === 'int') {
         if (cmp(x.value, y.value)) {
-            // true and false values are flipped???
-            // TODO: lambda needs a special evaluator now
-            return combinator("A")
+            return combinator("K")
         }
         else {
-            return combinator("K")
+            return combinator("A")
         }
     }
     throw new EvaluationError("invalid types for arithmetic operation, try evaluating arguments first")
@@ -38,211 +36,8 @@ function comparisonC(cmp: (p1: number, p2: number) => boolean): (x: GraphN, y: G
     return (x: GraphN, y: GraphN) => comparison(x, y, cmp)
 }
 
-function threeWayCompare(x: GraphN, y: GraphN): GraphN {
-    if (x.type === 'int' && y.type === 'int') {
-        if (x.value < y.value) return app(combinator("Z"), combinator("K"))
-        else if (x.value > y.value) return app(combinator("K"), combinator("A"))
-        else return (combinator("K"), combinator("K"))
-    }
-    throw new EvaluationError("invalid types for arithmetic operation, try evaluating arguments first")
-}
-
-function isNamed(x: GraphN, name: string): boolean {
-    return (x.type === 'comb' || x.type === 'funcref') && x.name === name
-}
-
-export interface Output {
-    print(str: string): void
-    println(str: string): void
-}
-
-export interface Input {
-    getChar(): string
-}
-
 export class Evaluator {
-    pointers: Map<number, Pointer>
-    output: Output
-    input: Input
 
-    constructor(output: Output, input: Input, pointers: Map<number, Pointer> = new Map()) {
-        this.pointers = pointers
-        this.output = output
-        this.input = input
-    }
-
-    performIO(x: GraphN): GraphN {
-        x = this.execio(x)
-        if (x.type !== 'app' || !isNamed(this.indir(x.lhs), "IO.return"))
-            throw new EvaluationError("wrong performio")
-        return x.rhs
-    }
-
-    putCharFromInt(x: GraphN): GraphN {
-        if (x.type === 'int') {
-            this.output.print(String.fromCodePoint(x.value))
-            return strConst("putChar")
-        }
-        else
-            throw new EvaluationError("invalid node type")
-    }
-
-    indir(top: GraphN): GraphN {
-        /**@brief follows indirection */
-        switch (top.type) {
-            case 'ptr':
-                if (!top.value.evaluated) {
-                    top.value.term = this.evaluate(top.value.term, top.value)
-                    top.value.evaluated = true
-                }
-
-                return top.value.term
-                break;
-            case 'numref': {
-                const ref = this.pointers.get(top.value)
-                if (ref == undefined)
-                    throw new EvaluationError("Invalid shared expression reference: _" + top.value)
-                else
-                    return ref
-                break;
-            }
-            default:
-                return top
-        }
-    }
-
-    execio(node: GraphN): GraphN {
-        let top = node
-        const cont: GraphN[] = [] // continuation of execio
-
-        while (true) {
-            // label start in mhs code
-            const whnf = this.evaluate(top)
-
-            const bindMatch = this.match2("IO.>>=", whnf)
-            if (bindMatch) {
-                const [r, s] = bindMatch
-                top = r
-                cont.push(s)
-                continue
-            }
-
-            const thenMatch = this.match2("IO.>>", whnf)
-            if (thenMatch) {
-                const [r, s] = thenMatch
-                top = r
-                cont.push(app(combinator("K"), s))
-                continue
-            }
-
-            const prim = this.execPrimitiveIO(whnf)
-            // label rest in mhs code
-            if (cont.length === 0) {
-                return app(combinator("IO.return"), prim)
-            }
-            else {
-                const r = cont.pop()!
-                top = app(r, prim)
-                continue
-            }
-        }
-    }
-
-    execPrimitiveIO(top: GraphN): GraphN {
-        // label execute in mhs code
-        const lhs_stack: App[] = []
-
-        while (true) {
-            switch (top.type) {
-                case "app":
-                    lhs_stack.push(top)
-                    top = top.lhs
-                    break
-                case "ptr":
-                    // TODO: we need writeback for this
-                    top = top.value.term
-                    break
-                case "numref": {
-                    const ref = this.pointers.get(top.value)
-                    if (ref == undefined)
-                        throw new EvaluationError("Invalid shared expression reference: _" + top.value)
-                    else
-                        top = ref
-                    break;
-                }
-                case "comb":
-                case "funcref":
-                    switch (top.name) {
-                        case "IO.print": {
-                            if (lhs_stack.length < 2)
-                                throw new EvaluationError(top.name + " arguments missing")
-
-                            lhs_stack.pop() // handle/stream
-                            const x = this.evaluate(lhs_stack.pop()!.rhs)
-                            this.output.println(evalExpStr(x))
-                            return combinator("I")
-                        }
-                        case "IO.return": {
-                            if (lhs_stack.length < 1)
-                                throw new EvaluationError(top.name + " arguments missing")
-
-                            return lhs_stack.pop()!.rhs
-                        }
-                        case "A.alloc": {
-                            if (lhs_stack.length < 2)
-                                throw new EvaluationError(top.name + " arguments missing")
-                            const x = this.evaluate(lhs_stack.pop()!.rhs)
-                            const y = makePointer(lhs_stack.pop()!.rhs)
-
-                            if (x.type === 'int' && x.value > 0) {
-                                const arr = []
-                                for (let i = 0; i < x.value; i++) {
-                                    arr.push(y)
-                                }
-                                const arrNode: Arr = { 'type': 'arr', 'array': arr }
-                                return arrNode
-                            }
-                            throw new EvaluationError("invalid array size")
-                        }
-                        case "A.read": {
-                            if (lhs_stack.length < 2)
-                                throw new EvaluationError(top.name + " arguments missing")
-                            const x = this.evaluate(lhs_stack.pop()!.rhs)
-                            const y = this.evaluate(lhs_stack.pop()!.rhs)
-
-                            if (x.type !== 'arr')
-                                throw new EvaluationError("A.read: invalid array")
-                            if (y.type !== 'int' || y.value < 0 || y.value >= x.array.length)
-                                throw new EvaluationError("Invalid array index")
-                            return x.array[y.value]
-                        }
-                        case "putb": {
-                            if (lhs_stack.length < 2)
-                                throw new EvaluationError(top.name + " arguments missing")
-                            const x = this.evaluate(lhs_stack.pop()!.rhs)
-                            lhs_stack.pop() // output stream/handle
-
-                            this.putCharFromInt(x)
-                            return combinator("I")
-                        }
-                        case "getb": {
-                            if (lhs_stack.length < 1)
-                                throw new EvaluationError(top.name + " arguments missing")
-                            lhs_stack.pop() // input stream/handle
-
-                            return intConst(this.input.getChar().codePointAt(0)!)
-                        }
-                        default:
-                            throw new EvaluationError("Unknown IO function: " + top.name)
-                    }
-                    break
-                default:
-                    throw new EvaluationError("cannot execute IO, invalid node type: " + top.type)
-            }
-        }
-    }
-
-    // TODO: try to optimize using pointer reversal
     evaluate(node: GraphN, writeback: PointedTo | null = null): GraphN {
         const lhs_stack: App[] = []
         let top = node
@@ -262,14 +57,6 @@ export class Evaluator {
 
                     top = top.value.term
                     break;
-                case 'numref': {
-                    const ref = this.pointers.get(top.value)
-                    if (ref == undefined)
-                        throw new EvaluationError("Invalid shared expression reference: _" + top.value)
-                    else
-                        top = ref
-                    break;
-                }
                 case "comb":
                     [top, loopAgain] = evalCombExpr(top, lhs_stack)
                     break
@@ -279,7 +66,7 @@ export class Evaluator {
                 default:
                     loopAgain = false
             }
-            // TODO: this is where we want to replace all occurences of this node in the graph with the evaluated node
+            // this is where replace all occurences of this node in the graph with the evaluated node
             if (lhs_stack.length > 0)
                 lhs_stack[lhs_stack.length - 1].lhs = top
             if (writeback !== null) {
@@ -299,38 +86,6 @@ export class Evaluator {
         return top;
     }
 
-    match2(combName: string, node: GraphN): [GraphN, GraphN] | null {
-        /**
-         * @brief matches node to expression: combName x y
-         */
-        if (node.type !== 'app')
-            return null
-
-        const lhs = this.indir(node.lhs)
-        if (lhs.type !== 'app')
-            return null
-
-        const head = this.indir(lhs.lhs)
-        if (!isNamed(head, combName))
-            return null
-
-        return [lhs.rhs, node.rhs]
-    }
-
-    match1(combName: string, node: GraphN): GraphN | null {
-        /**
-         * @brief matches node to expression: combName x
-         */
-        if (node.type !== 'app')
-            return null
-
-        const lhs = this.indir(node.lhs)
-        if (!isNamed(lhs, combName))
-            return null
-
-        return node.rhs
-    }
-
     performStrictFunc2(top: FuncRef, lhs_stack: App[], func: (x: GraphN, y: GraphN) => GraphN): [GraphN, boolean] {
         if (lhs_stack.length < 2)
             return [top, false]
@@ -344,61 +99,29 @@ export class Evaluator {
 
     evalFuncExpr(top: FuncRef, lhs_stack: App[]): [GraphN, boolean] {
         switch (top.name) {
-            case "IO.>>":
-            case "IO.>>=":
-            case "IO.return":
-            case "IO.print":
-            case "A.alloc":
-            case "A.read":
-            case "putb":
-            case "getb":
-            case "IO.stdout":
-            case "IO.stdin":
-                return [top, false]
-            case "equal":
-            case "sequal": {
-                // TODO: terrible hack
-                if (lhs_stack.length < 2) return [top, false]
-                const x = this.evaluate(lhs_stack.pop()!.rhs)
-                const y = this.evaluate(lhs_stack.pop()!.rhs)
-                return [(evalExpStr(x) === evalExpStr(y)) ? combinator("A") : combinator("K"), true]
-            }
             case "+":
-            case "u+":
                 return this.performStrictFunc2(top, lhs_stack, arithmeticC((p1, p2) => p1 + p2))
             case "-":
-            case "u-":
                 return this.performStrictFunc2(top, lhs_stack, arithmeticC((p1, p2) => p1 - p2))
             case "*":
-            case "u*":
                 return this.performStrictFunc2(top, lhs_stack, arithmeticC((p1, p2) => p1 * p2))
-            case "quot":
-            case "uquot":
+            case "/":
                 return this.performStrictFunc2(top, lhs_stack, arithmeticC((p1, p2) => p1 / p2 | 0))
-            case "rem":
-            case "urem":
+            case "%":
                 return this.performStrictFunc2(top, lhs_stack, arithmeticC((p1, p2) => p1 % p2))
             case "=": // for lambda calculus
             case "==":
-            case "u==":
                 return this.performStrictFunc2(top, lhs_stack, comparisonC((p1, p2) => p1 == p2))
             case "/=":
                 return this.performStrictFunc2(top, lhs_stack, comparisonC((p1, p2) => p1 != p2))
             case "<=":
-            case "u<=":
                 return this.performStrictFunc2(top, lhs_stack, comparisonC((p1, p2) => p1 <= p2))
             case "<":
-            case "u<":
                 return this.performStrictFunc2(top, lhs_stack, comparisonC((p1, p2) => p1 < p2))
             case ">=":
-            case "u>=":
                 return this.performStrictFunc2(top, lhs_stack, comparisonC((p1, p2) => p1 >= p2))
             case ">":
-            case "u>":
                 return this.performStrictFunc2(top, lhs_stack, comparisonC((p1, p2) => p1 > p2))
-            case "cmp":
-            case "ucmp":
-                return this.performStrictFunc2(top, lhs_stack, threeWayCompare)
             case "and":
                 return this.performStrictFunc2(top, lhs_stack, arithmeticC((p1, p2) => p1 & p2))
             case "or":
@@ -414,73 +137,20 @@ export class Evaluator {
                 const x = this.evaluate(lhs_stack.pop()!.rhs)
                 return [arithmetic(intConst(0), x, (p1, p2) => ~p2), true]
             }
-            case "neg":
-            case "uneg": {
+            case "neg": {
                 if (lhs_stack.length < 1) return [top, false]
                 const x = this.evaluate(lhs_stack.pop()!.rhs)
                 return [arithmetic(intConst(0), x, (p1, p2) => p1 - p2), true]
-            }
-            case "raise": {
-                if (lhs_stack.length < 1) return [top, false]
-                const ex = lhs_stack.pop()!.rhs
-                console.log(evalExpStr(ex))
-                const combShowExn = app(combinator("U"), app(combinator("U"), app(combinator("K2"), combinator("A"))))
-                const x = this.consToString(this.evaluate(app(combShowExn, ex)))
-                // MicroHs magic
-
-                throw new ProgramRaisedError(x)
-            }
-            case "IO.performIO": {
-                if (lhs_stack.length < 1) return [top, false]
-                const x = lhs_stack.pop()!.rhs
-                return [this.performIO(x), true]
-            }
-            case "seq": {
-                if (lhs_stack.length < 2) return [top, false]
-                this.evaluate(lhs_stack.pop()!.rhs) // evaluate x
-                const y = lhs_stack.pop()!.rhs
-                return [y, true]
-            }
-            case "fromUTF8": {
-                if (lhs_stack.length < 1) return [top, false]
-                const x = this.evaluate(lhs_stack.pop()!.rhs)
-                if (x.type === "str") return [mkString(x.value), true]
-                throw Error("invalid string for fromUTF8")
             }
             default:
                 throw new EvaluationError("unknown function " + top.name)
         }
     }
 
-    consToString(node: GraphN): string {
-        let res = ""
-        while (true) {
-            node = this.evaluate(node)
-            if (isNamed(node, "K"))
-                return res
-            const match = this.match2("O", node)
-            if (match === null)
-                break
-            const [cc, next] = match
-            const c = this.evaluate(cc)
-            if (c.type !== 'int')
-                throw new EvaluationError("invalid char")
-            if (c.value > 0x80)
-                res += "?"
-            res += String.fromCharCode(c.value)
-            node = next
-        }
-
-        throw new EvaluationError("invalid cons string")
-    }
-
-
     evalExpStr(term: GraphN, depth: number): string {
         if (depth <= 0)
             return ">...<"
         switch (term.type) {
-            case "numref":
-                return "_" + term.value + this.evalExpStr(this.pointers.get(term.value)!, depth - 1)
             case "ptr": {
                 const evaluated = term.value.evaluated ? "T" : "F"
                 return "ptr,e=" + evaluated + "( " + this.evalExpStr(term.value.term, depth - 1) + " )"
