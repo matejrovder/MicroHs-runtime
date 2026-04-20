@@ -92,7 +92,7 @@ export class Evaluator {
         switch (top.type) {
             case 'ptr':
                 if (!top.value.evaluated) {
-                    top.value.term = this.evaluate(top.value.term)
+                    top.value.term = this.evaluate(top.value.term, top.value)
                     top.value.evaluated = true
                 }
 
