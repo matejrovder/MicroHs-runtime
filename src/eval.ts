@@ -38,7 +38,7 @@ function comparisonC(cmp: (p1: number, p2: number) => boolean): (x: GraphN, y: G
     return (x: GraphN, y: GraphN) => comparison(x, y, cmp)
 }
 
-function compare(x: GraphN, y: GraphN): GraphN {
+function threeWayCompare(x: GraphN, y: GraphN): GraphN {
     if (x.type === 'int' && y.type === 'int') {
         if (x.value < y.value) return app(combinator("Z"), combinator("K"))
         else if (x.value > y.value) return app(combinator("K"), combinator("A"))
@@ -398,7 +398,7 @@ export class Evaluator {
                 return this.performStrictFunc2(top, lhs_stack, comparisonC((p1, p2) => p1 > p2))
             case "cmp":
             case "ucmp":
-                return this.performStrictFunc2(top, lhs_stack, compare)
+                return this.performStrictFunc2(top, lhs_stack, threeWayCompare)
             case "and":
                 return this.performStrictFunc2(top, lhs_stack, arithmeticC((p1, p2) => p1 & p2))
             case "or":
