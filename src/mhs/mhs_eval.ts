@@ -423,7 +423,6 @@ export class Evaluator {
             case "raise": {
                 if (lhs_stack.length < 1) return [top, false]
                 const ex = lhs_stack.pop()!.rhs
-                console.log(evalExpStr(ex))
                 const combShowExn = app(combinator("U"), app(combinator("U"), app(combinator("K2"), combinator("A"))))
                 const x = this.consToString(this.evaluate(app(combShowExn, ex)))
                 // MicroHs magic
@@ -467,7 +466,8 @@ export class Evaluator {
                 throw new EvaluationError("invalid char")
             if (c.value > 0x80)
                 res += "?"
-            res += String.fromCharCode(c.value)
+            else
+                res += String.fromCharCode(c.value)
             node = next
         }
 
