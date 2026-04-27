@@ -8,5 +8,6 @@
     "sourceMap": true,
     "types": ["node"]
   },
-  "include": ["src/**/*.ts"] // Include all TypeScript files in the src directory
+  "include": ["src/**/*.ts"], // Include all TypeScript files in the src directory
+  "exclude": ["src/**/__tests__/*"]
 }
