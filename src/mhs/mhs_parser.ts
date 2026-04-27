@@ -3,9 +3,14 @@ import { evalExpStr, Evaluator, makePointer } from "./mhs_eval";
 import { MhsLexer, mhsToken } from "./mhs_lexer";
 import { ParsingError } from "../errors";
 
+/**
+ * Parser for the MicroHs combinator files.
+ *
+ * @param {string} input - the contents of the input file to parse
+ */
 export class MhsParser {
-    currentToken: mhsToken
-    lexer: MhsLexer
+    private currentToken: mhsToken
+    private lexer: MhsLexer
 
     constructor(input: string) {
         this.lexer = new MhsLexer(input)
@@ -31,6 +36,11 @@ export class MhsParser {
         return this.currentToken;
     }
 
+    /**
+     * Parses the input passed to the constructor.
+     * @returns the root of the combinator graph and a map of numbered shared expressions.
+     * @throws {ParsingError}
+     */
     parse(): [GraphN, Map<bigint, Pointer>] {
         const stack: GraphN[] = []
         const pointers: Map<bigint, Pointer> = new Map()
@@ -52,12 +62,16 @@ export class MhsParser {
                 case mhsToken.string:
                     stack.push(strConst(this.lexer.stringVal))
                     break
+                // As this runtime doesn't support FFI, it doesn't 
+                // distinguish between an FFI call and a built-in primitive.
                 case mhsToken.fficall:
                 case mhsToken.named:
-                    // TODO: this
                     stack.push(funcref(this.lexer.stringVal))
                     break
                 case mhsToken.ref: {
+                    // If the referenced shared expression is already defined,
+                    // use the pointer node referencing it.
+                    // Else reference it by number.
                     const referenced = pointers.get(this.lexer.numVal)
                     if (referenced != undefined) {
                         stack.push(referenced)

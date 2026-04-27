@@ -13,6 +13,7 @@ export enum mhsToken {
     intconst,
 }
 
+/** Only these named symbols result in a combinator node being created. */
 const combinators: Set<string> = new Set([
     "S",
     "K",
@@ -39,12 +40,20 @@ const combinators: Set<string> = new Set([
     "IO.>>=",
 ])
 
+
+/**
+ * Lexical analyser / tokenizer for the MicroHs combinator files.
+ * To be constructed and used by the MhsParser class.
+ *
+ * @param {string} buffer - The input string to tokenize.
+ */
 export class MhsLexer {
-    buffer: string;
-    offset: number;
+    private buffer: string;
+    private offset: number;
+    private ch: string;
+
     stringVal: string = "";
     numVal: bigint = 0n;
-    ch: string;
 
     constructor(buffer: string) {
         this.buffer = buffer
@@ -98,8 +107,11 @@ export class MhsLexer {
         }
     }
 
+    /** 
+     * Decodes the quirky string encoding used by MicroHs.
+     * See src/MicroHs/ExpPrint.hs in MicroHs source code for more details.
+     */
     private readString(): void {
-        // decode creative encoding used in MicroHs
         this.stringVal = ""
         while (!/"/.test(this.ch)) {
             switch (this.ch) {
@@ -129,6 +141,14 @@ export class MhsLexer {
         }
     }
 
+    /**
+     * Gets the next token from the input.
+     * Also sets the stringVal or numVal member variable,
+     * if the token read is a string/integer.
+     * 
+     * @returns the next token
+     * @throws {ParsingError}
+     */
     getToken(): mhsToken {
         while (/\s/.test(this.ch)) {
             this.ch = this.getChar()
