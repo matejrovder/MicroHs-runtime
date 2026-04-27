@@ -78,6 +78,13 @@ export interface Input {
     getChar(): string
 }
 
+/**
+ * The class for running the parsed program
+ *
+ * @param {Output} output - object implementing the Output interface, used for print, putChar, etc.
+ * @param {Input} input - object implementing the Input interface, used for getLine, etc.
+ * @param {Map<bigint, Pointer>} pointers - the map of numbered shared expressions
+ */
 export class Evaluator {
     pointers: Map<bigint, Pointer>
     output: Output
@@ -89,16 +96,16 @@ export class Evaluator {
         this.input = input
     }
 
-    performIO(x: GraphN): GraphN {
+    private performIO(x: GraphN): GraphN {
         x = this.execio(x)
         if (x.type !== 'app' || !isNamed(this.indir(x.lhs), "IO.return"))
             throw new EvaluationError("wrong performio")
         return x.rhs
     }
 
-    putCharFromInt(x: GraphN): GraphN {
+    private putCharFromInt(x: GraphN): GraphN {
         if (x.type === 'int') {
-            console.log("putb " + x.value)
+            console.error("putb " + x.value)
             this.output.print(String.fromCodePoint(Number(x.value)))
             return strConst("putChar")
         }
@@ -106,7 +113,7 @@ export class Evaluator {
             throw new EvaluationError("invalid node type")
     }
 
-    indir(top: GraphN): GraphN {
+    private indir(top: GraphN): GraphN {
         /**@brief follows indirection */
         switch (top.type) {
             case 'ptr':
@@ -169,7 +176,7 @@ export class Evaluator {
         }
     }
 
-    execPrimitiveIO(top: GraphN): GraphN {
+    private execPrimitiveIO(top: GraphN): GraphN {
         // label execute in mhs code
         const lhs_stack: App[] = []
 
@@ -263,7 +270,14 @@ export class Evaluator {
         }
     }
 
-    // TODO: try to optimize using pointer reversal
+    // TODO: make private - to hide writeback arg
+    /**
+     * Evaluates the expression to WHNF.
+     * @param node - the expression to evaluate
+     * @param {PointedTo} writeback - optional, will be updated with the current state
+     *                                of the expression after each reduction step
+     * @returns evaluated expression in WHNF
+     */
     evaluate(node: GraphN, writeback: PointedTo | null = null): GraphN {
         const lhs_stack: App[] = []
         let top = node
@@ -300,10 +314,12 @@ export class Evaluator {
                 default:
                     loopAgain = false
             }
-            // TODO: this is where we want to replace all occurences of this node in the graph with the evaluated node
-            if (lhs_stack.length > 0)
-                lhs_stack[lhs_stack.length - 1].lhs = top
+
+            // this is where we replace all occurences of this node in the graph with the evaluated node
             if (writeback !== null) {
+                if (lhs_stack.length > 0)
+                    // as we are deliberately changing other occurences of the expression, we can break immutability
+                    lhs_stack[lhs_stack.length - 1].lhs = top
                 writeback.term = lhs_stack[0] ?? top
             }
         }
@@ -320,10 +336,11 @@ export class Evaluator {
         return top;
     }
 
+    /**
+     * Matches node to expression: combName x y
+     * @returns tuple [x, y] if match is found, else null
+     */
     match2(combName: string, node: GraphN): [GraphN, GraphN] | null {
-        /**
-         * @brief matches node to expression: combName x y
-         */
         if (node.type !== 'app')
             return null
 
@@ -338,10 +355,11 @@ export class Evaluator {
         return [lhs.rhs, node.rhs]
     }
 
+    /**
+     * Matches node to expression: combName x
+     * @returns x if match is found, else null
+     */
     match1(combName: string, node: GraphN): GraphN | null {
-        /**
-         * @brief matches node to expression: combName x
-         */
         if (node.type !== 'app')
             return null
 
@@ -352,7 +370,14 @@ export class Evaluator {
         return node.rhs
     }
 
-    performStrictFunc2(top: FuncRef, lhs_stack: App[], func: (x: GraphN, y: GraphN) => GraphN): [GraphN, boolean] {
+    /**
+     * Performs a strict function of 2 arguments. 
+     * Gets 2 arguments from stack, evaluates them, calls the function and returns result.
+     * 
+     * @returns a tuple of the result of the function and true boolean, unless there aren't
+     *          enough arguments on the stack
+     */
+    private performStrictFunc2(top: FuncRef, lhs_stack: App[], func: (x: GraphN, y: GraphN) => GraphN): [GraphN, boolean] {
         if (lhs_stack.length < 2)
             return [top, false]
 
@@ -363,11 +388,8 @@ export class Evaluator {
         return [res, true]
     }
 
-    evalFuncExpr(top: FuncRef, lhs_stack: App[]): [GraphN, boolean] {
+    private evalFuncExpr(top: FuncRef, lhs_stack: App[]): [GraphN, boolean] {
         switch (top.name) {
-            case "IO.>>":
-            case "IO.>>=":
-                throw new Error("io comb")
             case "IO.return":
             case "IO.print":
             case "A.alloc":
@@ -437,7 +459,7 @@ export class Evaluator {
             case "or":
                 return this.performStrictFunc2(top, lhs_stack, arithmeticCU((p1, p2) => p1 | p2))
             case "shr":
-                return this.performStrictFunc2(top, lhs_stack, arithmeticCU((p1, p2) => p1 >> p2))
+                return this.performStrictFunc2(top, lhs_stack, arithmeticCU((p1, p2) => BigInt.asUintN(64, p1) >> BigInt.asUintN(64, p2)))
             case "ashr":
                 return this.performStrictFunc2(top, lhs_stack, arithmeticCU((p1, p2) => BigInt.asIntN(64, p1) >> p2))
             case "shl":
@@ -488,7 +510,7 @@ export class Evaluator {
         }
     }
 
-    consToString(node: GraphN): string {
+    private consToString(node: GraphN): string {
         let res = ""
         while (true) {
             node = this.evaluate(node)
@@ -735,8 +757,11 @@ function evalCombExpr(top: Comb, lhs_stack: App[]): [GraphN, boolean] {
 
                 return [app(app(x, z), app(y, w)), true]
             }
-        default:
+        case "IO.>>":
+        case "IO.>>=":
             return [top, false]
+        default:
+            throw new EvaluationError("unknown function " + top.name)
     }
 }
 
@@ -753,10 +778,9 @@ export function evalExpStr(term: GraphN): string {
         case "funcref":
             return term.name;
         case "str":
-            if (term.value.length > 20)
-                return "string"
+            // if (term.value.length > 20)
+            // return "string"
             return "string \"" + term.value + "\""
-        // return term.value;
         case "int":
             return term.value.toString();
         case "arr": {
