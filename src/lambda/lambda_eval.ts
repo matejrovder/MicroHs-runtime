@@ -9,18 +9,18 @@ export function makePointer(node: GraphN): Pointer {
     return { 'type': "ptr", 'value': pointedTo }
 }
 
-function arithmetic(x: GraphN, y: GraphN, fn: (p1: number, p2: number) => number): GraphN {
+function arithmetic(x: GraphN, y: GraphN, fn: (p1: bigint, p2: bigint) => bigint): GraphN {
     if (x.type === 'int' && y.type === 'int') {
         return intConst(fn(x.value, y.value))
     }
     throw new EvaluationError("invalid types for arithmetic operation, try evaluating arguments first " + x.type + y.type)
 }
 
-function arithmeticC(fn: (p1: number, p2: number) => number): (x: GraphN, y: GraphN) => GraphN {
+function arithmeticC(fn: (p1: bigint, p2: bigint) => bigint): (x: GraphN, y: GraphN) => GraphN {
     return (x: GraphN, y: GraphN) => arithmetic(x, y, fn)
 }
 
-function comparison(x: GraphN, y: GraphN, cmp: (p1: number, p2: number) => boolean): GraphN {
+function comparison(x: GraphN, y: GraphN, cmp: (p1: bigint, p2: bigint) => boolean): GraphN {
     if (x.type === 'int' && y.type === 'int') {
         if (cmp(x.value, y.value)) {
             return combinator("K")
@@ -32,7 +32,7 @@ function comparison(x: GraphN, y: GraphN, cmp: (p1: number, p2: number) => boole
     throw new EvaluationError("invalid types for arithmetic operation, try evaluating arguments first")
 }
 
-function comparisonC(cmp: (p1: number, p2: number) => boolean): (x: GraphN, y: GraphN) => GraphN {
+function comparisonC(cmp: (p1: bigint, p2: bigint) => boolean): (x: GraphN, y: GraphN) => GraphN {
     return (x: GraphN, y: GraphN) => comparison(x, y, cmp)
 }
 
@@ -106,7 +106,7 @@ export class Evaluator {
             case "*":
                 return this.performStrictFunc2(top, lhs_stack, arithmeticC((p1, p2) => p1 * p2))
             case "/":
-                return this.performStrictFunc2(top, lhs_stack, arithmeticC((p1, p2) => p1 / p2 | 0))
+                return this.performStrictFunc2(top, lhs_stack, arithmeticC((p1, p2) => p1 / p2 | 0n))
             case "%":
                 return this.performStrictFunc2(top, lhs_stack, arithmeticC((p1, p2) => p1 % p2))
             case "=": // for lambda calculus
@@ -127,7 +127,7 @@ export class Evaluator {
             case "or":
                 return this.performStrictFunc2(top, lhs_stack, arithmeticC((p1, p2) => p1 | p2))
             case "shr":
-                return this.performStrictFunc2(top, lhs_stack, arithmeticC((p1, p2) => p1 >>> p2))
+                return this.performStrictFunc2(top, lhs_stack, arithmeticC((p1, p2) => p1 >> p2))
             case "ashr":
                 return this.performStrictFunc2(top, lhs_stack, arithmeticC((p1, p2) => p1 >> p2))
             case "shl":
@@ -135,12 +135,12 @@ export class Evaluator {
             case "inv": {
                 if (lhs_stack.length < 1) return [top, false]
                 const x = this.evaluate(lhs_stack.pop()!.rhs)
-                return [arithmetic(intConst(0), x, (p1, p2) => ~p2), true]
+                return [arithmetic(intConst(0n), x, (p1, p2) => ~p2), true]
             }
             case "neg": {
                 if (lhs_stack.length < 1) return [top, false]
                 const x = this.evaluate(lhs_stack.pop()!.rhs)
-                return [arithmetic(intConst(0), x, (p1, p2) => p1 - p2), true]
+                return [arithmetic(intConst(0n), x, (p1, p2) => p1 - p2), true]
             }
             default:
                 throw new EvaluationError("unknown function " + top.name)
