@@ -66,6 +66,7 @@ function mkCons(x: GraphN, xs: GraphN): App {
     // O - cons combinator
 }
 
+// TODO: rename
 function mkString(x: string): App | Const {
     let res: Const | App = combinator("K") // false/nil combinator
     for (let i = x.length - 1; i >= 0; i--) {
