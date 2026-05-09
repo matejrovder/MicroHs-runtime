@@ -1,3 +1,8 @@
+/**
+ * @file
+ * Output and Input interface implementations for Node.js
+ */
+
 import { Input, Output } from "./mhs/mhs_eval"
 const readline = require('readline')
 const fs = require('fs')

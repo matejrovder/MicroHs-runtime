@@ -1,3 +1,9 @@
+/**
+ * @file
+ * Contains definitions of types of nodes in SKI graphs,
+ * helper functions and other functions concerning types.
+ */
+
 import { LT } from "./lambda/lambda_types";
 
 type Var = {

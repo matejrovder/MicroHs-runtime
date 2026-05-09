@@ -1,3 +1,8 @@
+/**
+ * @file
+ * Functions to be used in unit tests.
+ */
+
 import { GraphN } from "./types"
 
 export function equalTerms(term1: GraphN, term2: GraphN): boolean {

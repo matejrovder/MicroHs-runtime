@@ -1,3 +1,9 @@
+/**
+ * @file
+ * Wrapper for the runtime system, supports Node.js. Accepts the path to the
+ * combinator output of MicroHs as an argument.
+ */
+
 import { evalExpStr, Evaluator } from "./mhs_eval"
 import { StandardInput, StandardOutput } from "../node_tools"
 import { MhsParser } from "./mhs_parser"
