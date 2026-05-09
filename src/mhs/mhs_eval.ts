@@ -55,7 +55,7 @@ function threeWayCompare(x: GraphN, y: GraphN): GraphN {
 
         if (xi < yi) return app(combinator("Z"), combinator("K"))
         else if (xi > yi) return app(combinator("K"), combinator("A"))
-        else return (combinator("K"), combinator("K"))
+        else return app(combinator("K"), combinator("K"))
     }
     throw new EvaluationError("invalid types for arithmetic operation, try evaluating arguments first")
 }
@@ -67,7 +67,7 @@ function threeWayCompareU(x: GraphN, y: GraphN): GraphN {
 
         if (xu < yu) return app(combinator("Z"), combinator("K"))
         else if (xu > yu) return app(combinator("K"), combinator("A"))
-        else return (combinator("K"), combinator("K"))
+        else return app(combinator("K"), combinator("K"))
     }
     throw new EvaluationError("invalid types for arithmetic operation, try evaluating arguments first")
 }
