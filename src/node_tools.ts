@@ -12,21 +12,6 @@ export class StandardOutput implements Output {
     }
 }
 
-// export class StandardInput implements Input {
-//     rl = null
-//     buffer: string | null = null;
-
-//     constructor() {
-//         this.rl = readline.createInterface({
-//             input: process.stdin,
-//         })
-//     }
-//     getChar(): string {
-//         if (this.buffer === null)
-//             this.buffer = this.rl.
-//     }
-// }
-
 export class StandardInput implements Input {
     getChar(): string {
         const buffer = Buffer.alloc(1)
