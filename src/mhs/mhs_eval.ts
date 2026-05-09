@@ -365,64 +365,91 @@ export class Evaluator {
                 return [(evalExpStr(x) === evalExpStr(y)) ? combinator("A") : combinator("K"), true]
             }
             case "+":
+            case "I+":
                 return this.performStrictFunc2(top, lhs_stack, arithmeticI((p1, p2) => p1 + p2))
             case "u+":
                 return this.performStrictFunc2(top, lhs_stack, arithmeticU((p1, p2) => p1 + p2))
             case "-":
+            case "I-":
                 return this.performStrictFunc2(top, lhs_stack, arithmeticI((p1, p2) => p1 - p2))
             case "u-":
                 return this.performStrictFunc2(top, lhs_stack, arithmeticU((p1, p2) => p1 - p2))
             case "*":
+            case "I*":
                 return this.performStrictFunc2(top, lhs_stack, arithmeticI((p1, p2) => p1 * p2))
             case "u*":
                 return this.performStrictFunc2(top, lhs_stack, arithmeticU((p1, p2) => p1 * p2))
             case "quot":
+            case "Iquot":
                 return this.performStrictFunc2(top, lhs_stack, arithmeticI((p1, p2) => p1 / p2))
             case "uquot":
+            case "Iuquot":
                 return this.performStrictFunc2(top, lhs_stack, arithmeticU((p1, p2) => p1 / p2))
             case "rem":
+            case "Irem":
                 return this.performStrictFunc2(top, lhs_stack, arithmeticI((p1, p2) => p1 % p2))
             case "urem":
+            case "Iurem":
                 return this.performStrictFunc2(top, lhs_stack, arithmeticU((p1, p2) => p1 % p2))
             case "=": // for lambda calculus
             case "==":
+            case "I==":
             case "u==":
                 return this.performStrictFunc2(top, lhs_stack, comparison((p1, p2) => p1 == p2))
             case "/=":
+            case "I/=":
                 return this.performStrictFunc2(top, lhs_stack, comparison((p1, p2) => p1 != p2))
             case "<=":
+            case "I<=":
             case "u<=":
+            case "Iu<=":
                 return this.performStrictFunc2(top, lhs_stack, comparison((p1, p2) => p1 <= p2))
             case "<":
+            case "I<":
             case "u<":
+            case "Iu<":
                 return this.performStrictFunc2(top, lhs_stack, comparison((p1, p2) => p1 < p2))
             case ">=":
+            case "I>=":
             case "u>=":
+            case "Iu>=":
                 return this.performStrictFunc2(top, lhs_stack, comparison((p1, p2) => p1 >= p2))
             case ">":
+            case "I>":
             case "u>":
+            case "Iu>":
                 return this.performStrictFunc2(top, lhs_stack, comparison((p1, p2) => p1 > p2))
             case "cmp":
+            case "icmp":
+            case "Iicmp":
                 return this.performStrictFunc2(top, lhs_stack, threeWayCompareI)
             case "ucmp":
+            case "Iucmp":
                 return this.performStrictFunc2(top, lhs_stack, threeWayCompareU)
             case "and":
+            case "Iand":
                 return this.performStrictFunc2(top, lhs_stack, arithmeticU((p1, p2) => p1 & p2))
             case "or":
+            case "Ior":
                 return this.performStrictFunc2(top, lhs_stack, arithmeticU((p1, p2) => p1 | p2))
             case "shr":
+            case "Ishr":
                 return this.performStrictFunc2(top, lhs_stack, arithmeticU((p1, p2) =>
                     BigInt.asUintN(64, p1) >> BigInt.asUintN(64, p2)))
             case "ashr":
+            case "Iashr":
                 return this.performStrictFunc2(top, lhs_stack, arithmeticU((p1, p2) => BigInt.asIntN(64, p1) >> p2))
             case "shl":
+            case "Ishl":
                 return this.performStrictFunc2(top, lhs_stack, arithmeticU((p1, p2) => p1 << p2))
-            case "inv": {
+            case "inv":
+            case "Iinv": {
                 if (lhs_stack.length < 1) return [top, false]
                 const x = this.evaluate(lhs_stack.pop()!.rhs)
                 return [performArithmetic(intConst(0n), x, (p1, p2) => BigInt.asUintN(64, ~p2)), true]
             }
-            case "neg": {
+            case "neg":
+            case "Ineg": {
                 if (lhs_stack.length < 1) return [top, false]
                 const x = this.evaluate(lhs_stack.pop()!.rhs)
                 return [performArithmetic(intConst(0n), x, (p1, p2) => BigInt.asIntN(64, p1 - p2)), true]
@@ -431,6 +458,17 @@ export class Evaluator {
                 if (lhs_stack.length < 1) return [top, false]
                 const x = this.evaluate(lhs_stack.pop()!.rhs)
                 return [performArithmetic(intConst(0n), x, (p1, p2) => BigInt.asUintN(64, p1 - p2)), true]
+            }
+            case "ord":
+            case "chr":
+            case "Itoi":
+            case "itoI":
+            case "utoU":
+            case "Utou": {
+                if (lhs_stack.length < 1) { return [top, false] }
+                else {
+                    return [lhs_stack.pop()!.rhs, true]
+                }
             }
             case "raise": {
                 if (lhs_stack.length < 1) return [top, false]
@@ -563,8 +601,8 @@ function evalCombExpr(top: Comb, lhs_stack: App[]): [GraphN, boolean] {
                 return [x, true]
             }
         case "I":
-        case "ord":
-        case "chr":
+        // case "ord":
+        // case "chr":
             if (lhs_stack.length < 1) { return [top, false] }
             else {
                 return [lhs_stack.pop()!.rhs, true]
