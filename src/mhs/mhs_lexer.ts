@@ -38,6 +38,7 @@ const combinators: Set<string> = new Set([
     "chr",
     "IO.>>",
     "IO.>>=",
+    "IO.return"
 ])
 
 

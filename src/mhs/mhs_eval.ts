@@ -779,6 +779,7 @@ function evalCombExpr(top: Comb, lhs_stack: App[]): [GraphN, boolean] {
             }
         case "IO.>>":
         case "IO.>>=":
+        case "IO.return":
             return [top, false]
         default:
             throw new EvaluationError("unknown function " + top.name)
