@@ -178,6 +178,8 @@ export class MhsLexer {
                 return mhsToken.fficall
             case "#":
                 this.getChar()
+                if (this.ch === "#")
+                    this.getChar()
                 this.readInt()
                 return mhsToken.intconst
             case "\"":
