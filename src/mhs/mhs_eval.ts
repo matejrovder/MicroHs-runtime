@@ -50,22 +50,27 @@ function comparisonC(cmp: (p1: bigint, p2: bigint) => boolean): (x: GraphN, y: G
 
 function threeWayCompare(x: GraphN, y: GraphN): GraphN {
     if (x.type === 'int' && y.type === 'int') {
-        if (x.value < y.value) return app(combinator("Z"), combinator("K"))
-        else if (x.value > y.value) return app(combinator("K"), combinator("A"))
+        const xi = BigInt.asIntN(64, x.value)
+        const yi = BigInt.asIntN(64, y.value)
+
+        if (xi < yi) return app(combinator("Z"), combinator("K"))
+        else if (xi > yi) return app(combinator("K"), combinator("A"))
         else return (combinator("K"), combinator("K"))
     }
     throw new EvaluationError("invalid types for arithmetic operation, try evaluating arguments first")
 }
 
-// function ucompare(x: GraphN, y: GraphN): GraphN {
-//     if (x.type === 'int' && y.type === 'int') {
-//         const xu = x.value >>> 0, yu =  y.value >>> 0
-//         if (xu < yu) return app(combinator("Z"), combinator("K"))
-//         else if (xu > yu) return app(combinator("K"), combinator("A"))
-//         else return (combinator("K"), combinator("K"))
-//     }
-//     throw new EvaluationError("invalid types for arithmetic operation, try evaluating arguments first")
-// }
+function threeWayCompareU(x: GraphN, y: GraphN): GraphN {
+    if (x.type === 'int' && y.type === 'int') {
+        const xu = BigInt.asUintN(64, x.value)
+        const yu = BigInt.asUintN(64, y.value)
+
+        if (xu < yu) return app(combinator("Z"), combinator("K"))
+        else if (xu > yu) return app(combinator("K"), combinator("A"))
+        else return (combinator("K"), combinator("K"))
+    }
+    throw new EvaluationError("invalid types for arithmetic operation, try evaluating arguments first")
+}
 
 function isNamed(x: GraphN, name: string): boolean {
     return (x.type === 'comb' || x.type === 'funcref') && x.name === name
@@ -107,7 +112,6 @@ export class Evaluator {
 
     private putCharFromInt(x: GraphN): GraphN {
         if (x.type === 'int') {
-            console.error("putb " + x.value)
             this.output.print(String.fromCodePoint(Number(x.value)))
             return strConst("putChar")
         }
@@ -145,9 +149,7 @@ export class Evaluator {
 
         while (true) {
             // label start in mhs code
-            console.error("execio eval " + this.evalExpStr(top, 7))
             const whnf = this.evaluate(top)
-            console.error("execio whnf " + this.evalExpStr(whnf, 7))
 
             const bindMatch = this.match2("IO.>>=", whnf)
             if (bindMatch) {
@@ -458,8 +460,9 @@ export class Evaluator {
             case "u>":
                 return this.performStrictFunc2(top, lhs_stack, comparisonC((p1, p2) => p1 > p2))
             case "cmp":
-            case "ucmp":
                 return this.performStrictFunc2(top, lhs_stack, threeWayCompare)
+            case "ucmp":
+                return this.performStrictFunc2(top, lhs_stack, threeWayCompareU)
             case "and":
                 return this.performStrictFunc2(top, lhs_stack, arithmeticCU((p1, p2) => p1 & p2))
             case "or":
@@ -489,9 +492,9 @@ export class Evaluator {
             case "raise": {
                 if (lhs_stack.length < 1) return [top, false]
                 const ex = lhs_stack.pop()!.rhs
+                // MicroHs magic to evaluate exception message
                 const combShowExn = app(combinator("U"), app(combinator("U"), app(combinator("K2"), combinator("A"))))
                 const x = this.consToString(this.evaluate(app(combShowExn, ex)))
-                // MicroHs magic
 
                 throw new ProgramRaisedError(x)
             }
