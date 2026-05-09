@@ -1,7 +1,7 @@
 import { token, Lexer } from './lexer';
 import { LT, ltapp, makeAbstraction, variable } from "./lambda_types";
 import { combinator, funcref, intConst } from "../types";
-import { ParsingError } from '../errors';
+import { ParsingException } from '../exceptions';
 // import { ASTNode, AbstractionNode, ApplicationNode, VariableNode, CombinatorNode, EmptyNode, makeAbstraction } from '../ast'
 
 // import * as y ...
@@ -23,14 +23,14 @@ export class Parser {
 
     match(t: token) {
         if (this.currentToken !== t) {
-            throw new ParsingError("invalid token: " + this.currentToken);
+            throw new ParsingException("invalid token: " + this.currentToken);
         }
         this.getNextToken();
     }
 
     matchVariable(): string {
         if (this.currentToken !== token.var) {
-            throw new ParsingError("invalid token: " + this.currentToken);
+            throw new ParsingException("invalid token: " + this.currentToken);
         }
         const varName = this.lexer.varIdentifier;
         this.getNextToken();
@@ -84,11 +84,11 @@ export class Parser {
             case token.eof:
                 if (lhs !== null)
                     return lhs;
-                else throw new ParsingError("end of file reached");
+                else throw new ParsingException("end of file reached");
             default:
                 if (lhs !== null)
                     return lhs;
-                else throw new ParsingError("invalid token: " + this.currentToken);
+                else throw new ParsingException("invalid token: " + this.currentToken);
         }
 
 

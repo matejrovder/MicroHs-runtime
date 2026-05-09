@@ -1,4 +1,4 @@
-import {EvaluationError, ProgramRaisedError} from '../errors';
+import {EvaluationException, ProgramRaisedException} from '../exceptions';
 import {
     App, app, Arr, Comb, combinator, FuncRef, GraphN, intConst, stringToCons, PointedTo, Pointer, strConst
 } from '../types'
@@ -40,7 +40,7 @@ export class Evaluator {
     private performIO(x: GraphN): GraphN {
         x = this.execio(x)
         if (x.type !== 'app' || !isNamed(this.unwrapPtr(x.lhs), "IO.return"))
-            throw new EvaluationError("wrong performio")
+            throw new EvaluationException("wrong performio")
         return x.rhs
     }
 
@@ -53,7 +53,7 @@ export class Evaluator {
             return strConst("putChar")
         }
         else
-            throw new EvaluationError("invalid node type")
+            throw new EvaluationException("invalid node type")
     }
 
     /**
@@ -72,7 +72,7 @@ export class Evaluator {
             case 'numref': {
                 const ref = this.pointers.get(top.value)
                 if (ref == undefined)
-                    throw new EvaluationError("Invalid shared expression reference: _" + top.value)
+                    throw new EvaluationException("Invalid shared expression reference: _" + top.value)
                 else
                     return ref
                 break;
@@ -142,7 +142,7 @@ export class Evaluator {
                 case "numref": {
                     const ref = this.pointers.get(top.value)
                     if (ref == undefined)
-                        throw new EvaluationError("Invalid shared expression reference: _" + top.value)
+                        throw new EvaluationException("Invalid shared expression reference: _" + top.value)
                     else
                         top = ref
                     break;
@@ -152,7 +152,7 @@ export class Evaluator {
                     switch (top.name) {
                         case "IO.print": {
                             if (lhs_stack.length < 2)
-                                throw new EvaluationError(top.name + " arguments missing")
+                                throw new EvaluationException(top.name + " arguments missing")
 
                             lhs_stack.pop() // output stream/handle
                             const x = this.evaluate(lhs_stack.pop()!.rhs)
@@ -161,13 +161,13 @@ export class Evaluator {
                         }
                         case "IO.return": {
                             if (lhs_stack.length < 1)
-                                throw new EvaluationError(top.name + " arguments missing")
+                                throw new EvaluationException(top.name + " arguments missing")
 
                             return lhs_stack.pop()!.rhs
                         }
                         case "A.alloc": {
                             if (lhs_stack.length < 2)
-                                throw new EvaluationError(top.name + " arguments missing")
+                                throw new EvaluationException(top.name + " arguments missing")
                             const x = this.evaluate(lhs_stack.pop()!.rhs)
                             const y = makePointer(lhs_stack.pop()!.rhs)
 
@@ -179,23 +179,23 @@ export class Evaluator {
                                 const arrNode: Arr = { 'type': 'arr', 'array': arr }
                                 return arrNode
                             }
-                            throw new EvaluationError("invalid array size")
+                            throw new EvaluationException("invalid array size")
                         }
                         case "A.read": {
                             if (lhs_stack.length < 2)
-                                throw new EvaluationError(top.name + " arguments missing")
+                                throw new EvaluationException(top.name + " arguments missing")
                             const x = this.evaluate(lhs_stack.pop()!.rhs)
                             const y = this.evaluate(lhs_stack.pop()!.rhs)
 
                             if (x.type !== 'arr')
-                                throw new EvaluationError("A.read: invalid array")
+                                throw new EvaluationException("A.read: invalid array")
                             if (y.type !== 'int' || y.value < 0 || y.value >= x.array.length)
-                                throw new EvaluationError("Invalid array index")
+                                throw new EvaluationException("Invalid array index")
                             return x.array[Number(y.value)]
                         }
                         case "putb": {
                             if (lhs_stack.length < 2)
-                                throw new EvaluationError(top.name + " arguments missing")
+                                throw new EvaluationException(top.name + " arguments missing")
                             const x = this.evaluate(lhs_stack.pop()!.rhs)
                             lhs_stack.pop() // output stream/handle
 
@@ -204,17 +204,17 @@ export class Evaluator {
                         }
                         case "getb": {
                             if (lhs_stack.length < 1)
-                                throw new EvaluationError(top.name + " arguments missing")
+                                throw new EvaluationException(top.name + " arguments missing")
                             lhs_stack.pop() // input stream/handle
 
                             return intConst(BigInt(this.input.getChar().codePointAt(0)!))
                         }
                         default:
-                            throw new EvaluationError("Unknown IO function: " + top.name)
+                            throw new EvaluationException("Unknown IO function: " + top.name)
                     }
                     break
                 default:
-                    throw new EvaluationError("cannot execute IO, invalid node type: " + top.type)
+                    throw new EvaluationException("cannot execute IO, invalid node type: " + top.type)
             }
         }
     }
@@ -249,7 +249,7 @@ export class Evaluator {
                 case 'numref': {
                     const ref = this.pointers.get(top.value)
                     if (ref == undefined)
-                        throw new EvaluationError("Invalid shared expression reference: _" + top.value)
+                        throw new EvaluationException("Invalid shared expression reference: _" + top.value)
                     else
                         top = ref
                     break;
@@ -280,7 +280,7 @@ export class Evaluator {
         }
 
         if (top.type === 'ptr' || top.type === 'numref')
-            throw new EvaluationError("invalid eval") // sanity check
+            throw new EvaluationException("invalid eval") // sanity check
 
         return top;
     }
@@ -343,7 +343,7 @@ export class Evaluator {
      * @returns the result of the function and true if the function was called,
      *          else top and false if not enough arguments available or the
      *          function is an IO function
-     * @throws {EvaluationError} Unknown function name
+     * @throws {EvaluationException} Unknown function name
      */
     private evalFuncExpr(top: FuncRef, lhs_stack: App[]): [GraphN, boolean] {
         switch (top.name) {
@@ -439,7 +439,7 @@ export class Evaluator {
                 const combShowExn = app(combinator("U"), app(combinator("U"), app(combinator("K2"), combinator("A"))))
                 const x = this.consToString(this.evaluate(app(combShowExn, ex)))
 
-                throw new ProgramRaisedError(x)
+                throw new ProgramRaisedException(x)
             }
             case "IO.performIO": {
                 if (lhs_stack.length < 1) return [top, false]
@@ -460,7 +460,7 @@ export class Evaluator {
                 throw Error("invalid string for fromUTF8")
             }
             default:
-                throw new EvaluationError("unknown function " + top.name)
+                throw new EvaluationException("unknown function " + top.name)
         }
     }
 
@@ -482,7 +482,7 @@ export class Evaluator {
             const [cc, next] = match
             const c = this.evaluate(cc)
             if (c.type !== 'int')
-                throw new EvaluationError("invalid char")
+                throw new EvaluationException("invalid char")
             if (c.value > 0x80)
                 res += "?"
             else
@@ -490,7 +490,7 @@ export class Evaluator {
             node = next
         }
 
-        throw new EvaluationError("invalid cons string")
+        throw new EvaluationException("invalid cons string")
     }
 
 
@@ -540,7 +540,7 @@ export class Evaluator {
  * @returns the result of the reduction and true if the reduction was performed,
  *          else top and false if not enough arguments available or the
  *          combinator is an IO monad
- * @throws {EvaluationError} Unknown combinator name
+ * @throws {EvaluationException} Unknown combinator name
  */
 function evalCombExpr(top: Comb, lhs_stack: App[]): [GraphN, boolean] {
     switch (top.name) {
@@ -729,7 +729,7 @@ function evalCombExpr(top: Comb, lhs_stack: App[]): [GraphN, boolean] {
         case "IO.return":
             return [top, false]
         default:
-            throw new EvaluationError("unknown function " + top.name)
+            throw new EvaluationException("unknown function " + top.name)
     }
 }
 

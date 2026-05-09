@@ -1,4 +1,4 @@
-import { EvaluationError } from '../errors';
+import { EvaluationException } from '../exceptions';
 import { GraphN, Pointer, PointedTo, App, combinator, app, intConst,  Comb, FuncRef } from '../types'
 
 export function makePointer(node: GraphN): Pointer {
@@ -13,7 +13,7 @@ function arithmetic(x: GraphN, y: GraphN, fn: (p1: bigint, p2: bigint) => bigint
     if (x.type === 'int' && y.type === 'int') {
         return intConst(fn(x.value, y.value))
     }
-    throw new EvaluationError("invalid types for arithmetic operation, try evaluating arguments first " + x.type + y.type)
+    throw new EvaluationException("invalid types for arithmetic operation, try evaluating arguments first " + x.type + y.type)
 }
 
 function arithmeticC(fn: (p1: bigint, p2: bigint) => bigint): (x: GraphN, y: GraphN) => GraphN {
@@ -29,7 +29,7 @@ function comparison(x: GraphN, y: GraphN, cmp: (p1: bigint, p2: bigint) => boole
             return combinator("A")
         }
     }
-    throw new EvaluationError("invalid types for arithmetic operation, try evaluating arguments first")
+    throw new EvaluationException("invalid types for arithmetic operation, try evaluating arguments first")
 }
 
 function comparisonC(cmp: (p1: bigint, p2: bigint) => boolean): (x: GraphN, y: GraphN) => GraphN {
@@ -81,7 +81,7 @@ export class Evaluator {
         }
 
         if (top.type === 'ptr' || top.type === 'numref')
-            throw new EvaluationError("invalid eval") // sanity check
+            throw new EvaluationException("invalid eval") // sanity check
 
         return top;
     }
@@ -143,7 +143,7 @@ export class Evaluator {
                 return [arithmetic(intConst(0n), x, (p1, p2) => p1 - p2), true]
             }
             default:
-                throw new EvaluationError("unknown function " + top.name)
+                throw new EvaluationException("unknown function " + top.name)
         }
     }
 

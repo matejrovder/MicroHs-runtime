@@ -4,7 +4,7 @@
  */
 
 import {app, combinator, GraphN, intConst, PointedTo, Pointer} from "../types";
-import {EvaluationError} from "../errors";
+import {EvaluationException} from "../exceptions";
 
 /** Makes a Pointer node and a PointedTo object holding the given node */
 export function makePointer(node: GraphN): Pointer {
@@ -23,7 +23,7 @@ export function performArithmetic(x: GraphN, y: GraphN, fn: (p1: bigint, p2: big
     if (x.type === 'int' && y.type === 'int') {
         return intConst(fn(x.value, y.value))
     }
-    throw new EvaluationError("invalid types for arithmetic operation, try evaluating arguments first "
+    throw new EvaluationException("invalid types for arithmetic operation, try evaluating arguments first "
         + x.type + y.type)
 }
 
@@ -56,7 +56,7 @@ function performComparison(x: GraphN, y: GraphN, cmp: (p1: bigint, p2: bigint) =
             return combinator("K")
         }
     }
-    throw new EvaluationError("invalid types for arithmetic operation, try evaluating arguments first")
+    throw new EvaluationException("invalid types for arithmetic operation, try evaluating arguments first")
 }
 
 /**
@@ -82,7 +82,7 @@ export function threeWayCompareI(x: GraphN, y: GraphN): GraphN {
         else if (xi > yi) return app(combinator("K"), combinator("A"))
         else return app(combinator("K"), combinator("K"))
     }
-    throw new EvaluationError("invalid types for arithmetic operation, try evaluating arguments first")
+    throw new EvaluationException("invalid types for arithmetic operation, try evaluating arguments first")
 }
 
 /**
@@ -100,7 +100,7 @@ export function threeWayCompareU(x: GraphN, y: GraphN): GraphN {
         else if (xu > yu) return app(combinator("K"), combinator("A"))
         else return app(combinator("K"), combinator("K"))
     }
-    throw new EvaluationError("invalid types for arithmetic operation, try evaluating arguments first")
+    throw new EvaluationException("invalid types for arithmetic operation, try evaluating arguments first")
 }
 
 /** Check if x is a function or a combinator of given name */

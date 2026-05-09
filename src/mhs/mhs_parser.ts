@@ -1,7 +1,7 @@
 import { app, combinator, funcref, intConst, Pointer, GraphN, strConst } from "../types";
 import { evalExpStr, Evaluator } from "./mhs_eval";
 import { MhsLexer, mhsToken } from "./mhs_lexer";
-import { ParsingError } from "../errors";
+import { ParsingException } from "../exceptions";
 import {makePointer} from "./eval_aux";
 
 /**
@@ -22,11 +22,11 @@ export class MhsParser {
 
     private skipHeader(debug: boolean) {
         if (this.currentToken != mhsToken.named)
-            throw new ParsingError("invalid header, version missing")
+            throw new ParsingException("invalid header, version missing")
         if (debug)
             console.log("PARSER: input file version " + this.lexer.stringVal)
         if (this.getNextToken() != mhsToken.named)
-            throw new ParsingError("invalid header, shared expression count missing")
+            throw new ParsingException("invalid header, shared expression count missing")
         if (debug)
             console.log("PARSER: " + this.lexer.stringVal + " shared expressions")
         this.getNextToken()
@@ -40,7 +40,7 @@ export class MhsParser {
     /**
      * Parses the input passed to the constructor.
      * @returns the root of the combinator graph and a map of numbered shared expressions.
-     * @throws {ParsingError}
+     * @throws {ParsingException}
      */
     parse(): [GraphN, Map<bigint, Pointer>] {
         const stack: GraphN[] = []
@@ -52,7 +52,7 @@ export class MhsParser {
                     break
                 case mhsToken.app: {
                     if (stack.length < 2)
-                        throw new ParsingError("@ with stack length < 2")
+                        throw new ParsingException("@ with stack length < 2")
                     const rhs: GraphN = stack.pop()!
                     stack.push(app(stack.pop()!, rhs))
                     break
@@ -85,7 +85,7 @@ export class MhsParser {
                 case mhsToken.ptrdef: {
                     // Defines a shared expression with the read label
                     if (stack.length < 1)
-                        throw new ParsingError("Shared expression creation with empty stack")
+                        throw new ParsingException("Shared expression creation with empty stack")
                     const top = stack.pop()!
                     const ptr = makePointer(top)
                     stack.push(ptr)
@@ -94,13 +94,13 @@ export class MhsParser {
                 }
                 case mhsToken.endbrace: {
                     if (stack.length < 1)
-                        throw new ParsingError("Empty stack at program end '}'")
+                        throw new ParsingException("Empty stack at program end '}'")
                     if (stack.length > 1)
-                        throw new ParsingError("Stack length > 1 at program end '}'")
+                        throw new ParsingException("Stack length > 1 at program end '}'")
                     return [stack.pop()!, pointers]
                 }
                 case mhsToken.eof: {
-                    throw new ParsingError("Unexpected EOF while parsing")
+                    throw new ParsingException("Unexpected EOF while parsing")
                 }
             }
 

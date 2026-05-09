@@ -1,4 +1,4 @@
-import { ParsingError } from "../errors";
+import { ParsingException } from "../exceptions";
 
 export enum mhsToken {
     eof,
@@ -89,7 +89,7 @@ export class MhsLexer {
         }
 
         if (!/\d/.test(this.ch))
-            throw new ParsingError("invalid number")
+            throw new ParsingException("invalid number")
         this.numVal = 0n
         while (/\d/.test(this.ch)) {
             this.numVal *= 10n
@@ -148,7 +148,7 @@ export class MhsLexer {
      * if the token read is a string/integer.
      * 
      * @returns the next token
-     * @throws {ParsingError}
+     * @throws {ParsingException}
      */
     getToken(): mhsToken {
         while (/\s/.test(this.ch)) {
