@@ -1,6 +1,6 @@
 import {EvaluationError, ProgramRaisedError} from '../errors';
 import {
-    App, app, Arr, Comb, combinator, FuncRef, GraphN, intConst, mkString, PointedTo, Pointer, strConst
+    App, app, Arr, Comb, combinator, FuncRef, GraphN, intConst, stringToCons, PointedTo, Pointer, strConst
 } from '../types'
 import {
     arithmeticI, arithmeticU, comparison, isNamed, makePointer, performArithmetic,
@@ -34,13 +34,19 @@ export class Evaluator {
         this.input = input
     }
 
+    /**
+     * Performs (unsafe) IO during evaluation. Counterpart of Haskell's unsafePerformIO.
+     */
     private performIO(x: GraphN): GraphN {
         x = this.execio(x)
-        if (x.type !== 'app' || !isNamed(this.indir(x.lhs), "IO.return"))
+        if (x.type !== 'app' || !isNamed(this.unwrapPtr(x.lhs), "IO.return"))
             throw new EvaluationError("wrong performio")
         return x.rhs
     }
 
+    /**
+     * Puts a character with ASCII code from argument to output stream.
+     */
     private putCharFromInt(x: GraphN): GraphN {
         if (x.type === 'int') {
             this.output.print(String.fromCodePoint(Number(x.value)))
@@ -50,8 +56,10 @@ export class Evaluator {
             throw new EvaluationError("invalid node type")
     }
 
-    private indir(top: GraphN): GraphN {
-        /**@brief follows indirection */
+    /**
+     * Unwraps a pointer or a reference.
+     */
+    private unwrapPtr(top: GraphN): GraphN {
         switch (top.type) {
             case 'ptr':
                 if (!top.value.evaluated) {
@@ -74,6 +82,10 @@ export class Evaluator {
         }
     }
 
+    /**
+     * Executes Haskell/MicroHs monad IO. Corresponds to older MicroHs versions'
+     * execio function.
+     */
     execio(node: GraphN): GraphN {
         let top = node
         const cont: GraphN[] = [] // continuation of execio
@@ -281,11 +293,11 @@ export class Evaluator {
         if (node.type !== 'app')
             return null
 
-        const lhs = this.indir(node.lhs)
+        const lhs = this.unwrapPtr(node.lhs)
         if (lhs.type !== 'app')
             return null
 
-        const head = this.indir(lhs.lhs)
+        const head = this.unwrapPtr(lhs.lhs)
         if (!isNamed(head, combName))
             return null
 
@@ -300,7 +312,7 @@ export class Evaluator {
         if (node.type !== 'app')
             return null
 
-        const lhs = this.indir(node.lhs)
+        const lhs = this.unwrapPtr(node.lhs)
         if (!isNamed(lhs, combName))
             return null
 
@@ -441,9 +453,10 @@ export class Evaluator {
                 return [y, true]
             }
             case "fromUTF8": {
+                // converts string to Cons-Nil form
                 if (lhs_stack.length < 1) return [top, false]
                 const x = this.evaluate(lhs_stack.pop()!.rhs)
-                if (x.type === "str") return [mkString(x.value), true]
+                if (x.type === "str") return [stringToCons(x.value), true]
                 throw Error("invalid string for fromUTF8")
             }
             default:

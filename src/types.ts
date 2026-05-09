@@ -5,6 +5,8 @@ type Var = {
     varN: string;
 }
 
+// Types of graph nodes
+
 type App = {
     type: 'app';
     lhs: GraphN;
@@ -54,27 +56,14 @@ type NumberedRef = {
     value: bigint
 }
 
+/** the Graph node type */
 type GraphN = App | Const | Pointer | NumberedRef
-// Graph node
+
+
+// Functions to simplify graph node creation
 
 function strConst(x: string): Const {
     return { "type": "str", "value": x }
-}
-
-function mkCons(x: GraphN, xs: GraphN): App {
-    return app(app(combinator("O"), x), xs)
-    // O - cons combinator
-}
-
-// TODO: rename
-function mkString(x: string): App | Const {
-    let res: Const | App = combinator("K") // false/nil combinator
-    for (let i = x.length - 1; i >= 0; i--) {
-        const ord = intConst(BigInt(x.charCodeAt(i)))
-        res = mkCons(ord, res)
-    }
-
-    return res
 }
 
 function intConst(x: bigint): Const {
@@ -91,6 +80,29 @@ function app(t1: GraphN, t2: GraphN): App {
 
 function funcref(f: string): FuncRef {
     return { "type": "funcref", "name": f };
+}
+
+
+/** Creates a (Cons x xs) node */
+function mkCons(x: GraphN, xs: GraphN): App {
+    return app(app(combinator("O"), x), xs)
+    // O - cons combinator
+}
+
+/**
+ * Converts a string to Cons-Nil representation,
+ * using comb. O as Cons and comb. K as Nil.
+ * The reverse conversion is a member of Evaluator, because it needs
+ * to call evaluate.
+ */
+function stringToCons(x: string): App | Const {
+    let res: Const | App = combinator("K") // false/Nil combinator
+    for (let i = x.length - 1; i >= 0; i--) {
+        const ord = intConst(BigInt(x.charCodeAt(i)))
+        res = mkCons(ord, res)
+    }
+
+    return res
 }
 
 function expStr(term: LT | GraphN): string {
@@ -121,7 +133,5 @@ function expStr(term: LT | GraphN): string {
     }
 }
 
-export const U64_MAX = 18446744073709551615n
-export const I64_MAX = 9223372036854775808n
 
-export { GraphN, Pointer, PointedTo, Var, App, Const, Arr, Comb, Str, Int, FuncRef, combinator, strConst, mkString, intConst, app, funcref, expStr }
+export { GraphN, Pointer, PointedTo, Var, App, Const, Arr, Comb, Str, Int, FuncRef, combinator, strConst, stringToCons, intConst, app, funcref, expStr }
