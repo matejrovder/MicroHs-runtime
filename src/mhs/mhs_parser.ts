@@ -82,6 +82,7 @@ export class MhsParser {
                     break
                 }
                 case mhsToken.ptrdef: {
+                    // Defines a shared expression with the read label
                     if (stack.length < 1)
                         throw new ParsingError("Shared expression creation with empty stack")
                     const top = stack.pop()!
