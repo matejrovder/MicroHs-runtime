@@ -13,6 +13,8 @@
     "globals": "^17.1.0"
   },
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "start": "node dist/mhs/mhs_run.js",
+    "build": "tsc"
   }
 }
