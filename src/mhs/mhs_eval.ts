@@ -1,80 +1,11 @@
-import { EvaluationError, ProgramRaisedError } from '../errors';
-import { GraphN, Pointer, PointedTo, App, combinator, app, intConst, strConst, Comb, Arr, mkString, FuncRef }
-    from '../types'
-
-export function makePointer(node: GraphN): Pointer {
-    if (node.type === 'ptr')
-        return node;
-
-    const pointedTo: PointedTo = { 'type': 'pointedto', 'evaluated': false, term: node }
-    return { 'type': "ptr", 'value': pointedTo }
-}
-
-function arithmetic(x: GraphN, y: GraphN, fn: (p1: bigint, p2: bigint) => bigint): GraphN {
-    if (x.type === 'int' && y.type === 'int') {
-        return intConst(fn(x.value, y.value))
-    }
-    throw new EvaluationError("invalid types for arithmetic operation, try evaluating arguments first "
-        + x.type + y.type)
-}
-
-function arithmeticC(fn: (p1: bigint, p2: bigint) => bigint): (x: GraphN, y: GraphN) => GraphN {
-    return (x: GraphN, y: GraphN) => arithmetic(x, y, fn)
-}
-
-function arithmeticCU(fn: (p1: bigint, p2: bigint) => bigint): (x: GraphN, y: GraphN) => GraphN {
-    return (x: GraphN, y: GraphN) => arithmetic(x, y, (x, y) => BigInt.asUintN(64, fn(x, y)))
-}
-
-function arithmeticCI(fn: (p1: bigint, p2: bigint) => bigint): (x: GraphN, y: GraphN) => GraphN {
-    return (x: GraphN, y: GraphN) => arithmetic(x, y, (x, y) => BigInt.asIntN(64, fn(x, y)))
-}
-
-function comparison(x: GraphN, y: GraphN, cmp: (p1: bigint, p2: bigint) => boolean): GraphN {
-    if (x.type === 'int' && y.type === 'int') {
-        if (cmp(x.value, y.value)) {
-            // true and false values are flipped???
-            // TODO: lambda needs a special evaluator now
-            return combinator("A")
-        }
-        else {
-            return combinator("K")
-        }
-    }
-    throw new EvaluationError("invalid types for arithmetic operation, try evaluating arguments first")
-}
-
-function comparisonC(cmp: (p1: bigint, p2: bigint) => boolean): (x: GraphN, y: GraphN) => GraphN {
-    return (x: GraphN, y: GraphN) => comparison(x, y, cmp)
-}
-
-function threeWayCompare(x: GraphN, y: GraphN): GraphN {
-    if (x.type === 'int' && y.type === 'int') {
-        const xi = BigInt.asIntN(64, x.value)
-        const yi = BigInt.asIntN(64, y.value)
-
-        if (xi < yi) return app(combinator("Z"), combinator("K"))
-        else if (xi > yi) return app(combinator("K"), combinator("A"))
-        else return app(combinator("K"), combinator("K"))
-    }
-    throw new EvaluationError("invalid types for arithmetic operation, try evaluating arguments first")
-}
-
-function threeWayCompareU(x: GraphN, y: GraphN): GraphN {
-    if (x.type === 'int' && y.type === 'int') {
-        const xu = BigInt.asUintN(64, x.value)
-        const yu = BigInt.asUintN(64, y.value)
-
-        if (xu < yu) return app(combinator("Z"), combinator("K"))
-        else if (xu > yu) return app(combinator("K"), combinator("A"))
-        else return app(combinator("K"), combinator("K"))
-    }
-    throw new EvaluationError("invalid types for arithmetic operation, try evaluating arguments first")
-}
-
-function isNamed(x: GraphN, name: string): boolean {
-    return (x.type === 'comb' || x.type === 'funcref') && x.name === name
-}
+import {EvaluationError, ProgramRaisedError} from '../errors';
+import {
+    App, app, Arr, Comb, combinator, FuncRef, GraphN, intConst, mkString, PointedTo, Pointer, strConst
+} from '../types'
+import {
+    arithmeticI, arithmeticU, comparison, isNamed, makePointer, performArithmetic,
+    threeWayCompareI, threeWayCompareU
+} from "./eval_aux";
 
 export interface Output {
     print(str: string): void
@@ -331,7 +262,7 @@ export class Evaluator {
         }
 
         while (lhs_stack.length > 0) {
-            // const rhs = evaluate(lhs_stack.pop()!.rhs) 
+            // const rhs = evaluate(lhs_stack.pop()!.rhs)
             const rhs = lhs_stack.pop()!.rhs // not evaluating here, to keep lazy eval
             top = app(top, rhs)
         }
@@ -377,9 +308,9 @@ export class Evaluator {
     }
 
     /**
-     * Performs a strict function of 2 arguments. 
+     * Performs a strict function of 2 arguments.
      * Gets 2 arguments from stack, evaluates them, calls the function and returns result.
-     * 
+     *
      * @returns a tuple of the result of the function and true boolean, unless there aren't
      *          enough arguments on the stack
      */
@@ -397,7 +328,7 @@ export class Evaluator {
 
     /**
      * Calls the function referenced by top with arguments from the stack
-     * @returns the result of the function and true if the function was called, 
+     * @returns the result of the function and true if the function was called,
      *          else top and false if not enough arguments available or the
      *          function is an IO function
      * @throws {EvaluationError} Unknown function name
@@ -422,72 +353,72 @@ export class Evaluator {
                 return [(evalExpStr(x) === evalExpStr(y)) ? combinator("A") : combinator("K"), true]
             }
             case "+":
-                return this.performStrictFunc2(top, lhs_stack, arithmeticCI((p1, p2) => p1 + p2))
+                return this.performStrictFunc2(top, lhs_stack, arithmeticI((p1, p2) => p1 + p2))
             case "u+":
-                return this.performStrictFunc2(top, lhs_stack, arithmeticCU((p1, p2) => p1 + p2))
+                return this.performStrictFunc2(top, lhs_stack, arithmeticU((p1, p2) => p1 + p2))
             case "-":
-                return this.performStrictFunc2(top, lhs_stack, arithmeticCI((p1, p2) => p1 - p2))
+                return this.performStrictFunc2(top, lhs_stack, arithmeticI((p1, p2) => p1 - p2))
             case "u-":
-                return this.performStrictFunc2(top, lhs_stack, arithmeticCU((p1, p2) => p1 - p2))
+                return this.performStrictFunc2(top, lhs_stack, arithmeticU((p1, p2) => p1 - p2))
             case "*":
-                return this.performStrictFunc2(top, lhs_stack, arithmeticCI((p1, p2) => p1 * p2))
+                return this.performStrictFunc2(top, lhs_stack, arithmeticI((p1, p2) => p1 * p2))
             case "u*":
-                return this.performStrictFunc2(top, lhs_stack, arithmeticCU((p1, p2) => p1 * p2))
+                return this.performStrictFunc2(top, lhs_stack, arithmeticU((p1, p2) => p1 * p2))
             case "quot":
-                return this.performStrictFunc2(top, lhs_stack, arithmeticCI((p1, p2) => p1 / p2))
+                return this.performStrictFunc2(top, lhs_stack, arithmeticI((p1, p2) => p1 / p2))
             case "uquot":
-                return this.performStrictFunc2(top, lhs_stack, arithmeticCU((p1, p2) => p1 / p2))
+                return this.performStrictFunc2(top, lhs_stack, arithmeticU((p1, p2) => p1 / p2))
             case "rem":
-                return this.performStrictFunc2(top, lhs_stack, arithmeticCI((p1, p2) => p1 % p2))
+                return this.performStrictFunc2(top, lhs_stack, arithmeticI((p1, p2) => p1 % p2))
             case "urem":
-                return this.performStrictFunc2(top, lhs_stack, arithmeticCU((p1, p2) => p1 % p2))
+                return this.performStrictFunc2(top, lhs_stack, arithmeticU((p1, p2) => p1 % p2))
             case "=": // for lambda calculus
             case "==":
             case "u==":
-                return this.performStrictFunc2(top, lhs_stack, comparisonC((p1, p2) => p1 == p2))
+                return this.performStrictFunc2(top, lhs_stack, comparison((p1, p2) => p1 == p2))
             case "/=":
-                return this.performStrictFunc2(top, lhs_stack, comparisonC((p1, p2) => p1 != p2))
+                return this.performStrictFunc2(top, lhs_stack, comparison((p1, p2) => p1 != p2))
             case "<=":
             case "u<=":
-                return this.performStrictFunc2(top, lhs_stack, comparisonC((p1, p2) => p1 <= p2))
+                return this.performStrictFunc2(top, lhs_stack, comparison((p1, p2) => p1 <= p2))
             case "<":
             case "u<":
-                return this.performStrictFunc2(top, lhs_stack, comparisonC((p1, p2) => p1 < p2))
+                return this.performStrictFunc2(top, lhs_stack, comparison((p1, p2) => p1 < p2))
             case ">=":
             case "u>=":
-                return this.performStrictFunc2(top, lhs_stack, comparisonC((p1, p2) => p1 >= p2))
+                return this.performStrictFunc2(top, lhs_stack, comparison((p1, p2) => p1 >= p2))
             case ">":
             case "u>":
-                return this.performStrictFunc2(top, lhs_stack, comparisonC((p1, p2) => p1 > p2))
+                return this.performStrictFunc2(top, lhs_stack, comparison((p1, p2) => p1 > p2))
             case "cmp":
-                return this.performStrictFunc2(top, lhs_stack, threeWayCompare)
+                return this.performStrictFunc2(top, lhs_stack, threeWayCompareI)
             case "ucmp":
                 return this.performStrictFunc2(top, lhs_stack, threeWayCompareU)
             case "and":
-                return this.performStrictFunc2(top, lhs_stack, arithmeticCU((p1, p2) => p1 & p2))
+                return this.performStrictFunc2(top, lhs_stack, arithmeticU((p1, p2) => p1 & p2))
             case "or":
-                return this.performStrictFunc2(top, lhs_stack, arithmeticCU((p1, p2) => p1 | p2))
+                return this.performStrictFunc2(top, lhs_stack, arithmeticU((p1, p2) => p1 | p2))
             case "shr":
-                return this.performStrictFunc2(top, lhs_stack, arithmeticCU((p1, p2) =>
+                return this.performStrictFunc2(top, lhs_stack, arithmeticU((p1, p2) =>
                     BigInt.asUintN(64, p1) >> BigInt.asUintN(64, p2)))
             case "ashr":
-                return this.performStrictFunc2(top, lhs_stack, arithmeticCU((p1, p2) => BigInt.asIntN(64, p1) >> p2))
+                return this.performStrictFunc2(top, lhs_stack, arithmeticU((p1, p2) => BigInt.asIntN(64, p1) >> p2))
             case "shl":
-                return this.performStrictFunc2(top, lhs_stack, arithmeticCU((p1, p2) => p1 << p2))
+                return this.performStrictFunc2(top, lhs_stack, arithmeticU((p1, p2) => p1 << p2))
             case "inv": {
                 if (lhs_stack.length < 1) return [top, false]
                 const x = this.evaluate(lhs_stack.pop()!.rhs)
-                return [arithmetic(intConst(0n), x, (p1, p2) => BigInt.asUintN(64, ~p2)), true]
+                return [performArithmetic(intConst(0n), x, (p1, p2) => BigInt.asUintN(64, ~p2)), true]
             }
             case "neg": {
                 if (lhs_stack.length < 1) return [top, false]
                 const x = this.evaluate(lhs_stack.pop()!.rhs)
-                return [arithmetic(intConst(0n), x, (p1, p2) => BigInt.asIntN(64, p1 - p2)), true]
+                return [performArithmetic(intConst(0n), x, (p1, p2) => BigInt.asIntN(64, p1 - p2)), true]
             }
             case "uneg": {
                 if (lhs_stack.length < 1) return [top, false]
                 const x = this.evaluate(lhs_stack.pop()!.rhs)
-                return [arithmetic(intConst(0n), x, (p1, p2) => BigInt.asUintN(64, p1 - p2)), true]
+                return [performArithmetic(intConst(0n), x, (p1, p2) => BigInt.asUintN(64, p1 - p2)), true]
             }
             case "raise": {
                 if (lhs_stack.length < 1) return [top, false]
@@ -523,7 +454,7 @@ export class Evaluator {
     /**
      * Converts a cons string to a JavaScript string.
      * example: (Cons "a" (Cons "b" (Cons "c" Nil))) -> "abc"
-     * 
+     *
      * where Cons is the O combinator and Nil is the K combinator
      */
     private consToString(node: GraphN): string {
@@ -593,7 +524,7 @@ export class Evaluator {
 
 /**
  * Performs the reduction with the combinator on top and arguments from the stack
- * @returns the result of the reduction and true if the reduction was performed, 
+ * @returns the result of the reduction and true if the reduction was performed,
  *          else top and false if not enough arguments available or the
  *          combinator is an IO monad
  * @throws {EvaluationError} Unknown combinator name
@@ -692,7 +623,7 @@ function evalCombExpr(top: Comb, lhs_stack: App[]): [GraphN, boolean] {
         case "A":
             if (lhs_stack.length < 2) { return [top, false] }
             else {
-                lhs_stack.pop() // x 
+                lhs_stack.pop() // x
                 const y = lhs_stack.pop()!.rhs
                 return [y, true]
             }
