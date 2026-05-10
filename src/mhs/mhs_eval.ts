@@ -369,7 +369,7 @@ export class Evaluator {
      */
     private evalFuncExpr(top: FuncRef, lhs_stack: App[]): [GraphN, boolean] {
         switch (top.name) {
-            case "IO.return":
+            // case "IO.return":
             case "IO.print":
             case "A.alloc":
             case "A.read":
@@ -403,19 +403,25 @@ export class Evaluator {
             case "I+":
                 return this.performStrictFunc2(top, lhs_stack, arithmeticI((p1, p2) => p1 + p2))
             case "u+":
+            case "Iu+":
                 return this.performStrictFunc2(top, lhs_stack, arithmeticU((p1, p2) => p1 + p2))
             case "-":
             case "I-":
                 return this.performStrictFunc2(top, lhs_stack, arithmeticI((p1, p2) => p1 - p2))
+            case "u-":
+            case "Iu-":
+                return this.performStrictFunc2(top, lhs_stack, arithmeticU((p1, p2) => p1 - p2))
             case "subtract":
             case "Isubtract":
                 return this.performStrictFunc2(top, lhs_stack, arithmeticI((p1, p2) => p2 - p1))
-            case "u-":
-                return this.performStrictFunc2(top, lhs_stack, arithmeticU((p1, p2) => p1 - p2))
+            case "usubtract":
+            case "Iusubtract":
+                return this.performStrictFunc2(top, lhs_stack, arithmeticU((p1, p2) => p2 - p1))
             case "*":
             case "I*":
                 return this.performStrictFunc2(top, lhs_stack, arithmeticI((p1, p2) => p1 * p2))
             case "u*":
+            case "Iu*":
                 return this.performStrictFunc2(top, lhs_stack, arithmeticU((p1, p2) => p1 * p2))
             case "quot":
             case "Iquot":
