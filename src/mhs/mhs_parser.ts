@@ -17,7 +17,8 @@ export class MhsParser {
         this.lexer = new MhsLexer(input)
         this.currentToken = this.getNextToken()
 
-        this.skipHeader(true)
+        // disable debug message
+        this.skipHeader(false)
     }
 
     private skipHeader(debug: boolean) {
@@ -29,6 +30,7 @@ export class MhsParser {
             throw new ParsingException("invalid header, shared expression count missing")
         if (debug)
             console.log("PARSER: " + this.lexer.stringVal + " shared expressions")
+        // grep -v -e PARSER -e LEXER clears output of debug messages
         this.getNextToken()
     }
 
