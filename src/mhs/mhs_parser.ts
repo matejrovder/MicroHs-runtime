@@ -1,5 +1,4 @@
 import { app, combinator, funcref, intConst, Pointer, GraphN, strConst } from "../types";
-import { evalExpStr, Evaluator } from "./mhs_eval";
 import { MhsLexer, mhsToken } from "./mhs_lexer";
 import { ParsingException } from "../exceptions";
 import {makePointer} from "./eval_aux";

@@ -155,7 +155,7 @@ export class Evaluator {
 
                             lhs_stack.pop() // output stream/handle
                             const x = this.evaluate(lhs_stack.pop()!.rhs)
-                            this.output.println(evalExpStr(x))
+                            this.output.println(this.expStringDump(x))
                             return combinator("I")
                         }
                         case "IO.return": {
@@ -562,16 +562,21 @@ export class Evaluator {
         throw new EvaluationException("invalid cons string")
     }
 
-
-    evalExpStr(term: GraphN, depth: number): string {
+    /**
+     * Returns a string represenation of the expression,
+     * also resolves references up to _depth_
+     * @param term - expression to dump in to string
+     * @param depth - depth to which to resolve references
+     */
+    expStringDump(term: GraphN, depth: number = 3): string {
         if (depth <= 0)
             return ">...<"
         switch (term.type) {
             case "numref":
-                return "_" + term.value + this.evalExpStr(this.pointers.get(term.value)!, depth - 1)
+                return "_" + term.value + this.expStringDump(this.pointers.get(term.value)!, depth - 1)
             case "ptr": {
                 const evaluated = term.value.evaluated ? "T" : "F"
-                return "ptr,e=" + evaluated + "( " + this.evalExpStr(term.value.term, depth - 1) + " )"
+                return "ptr,e=" + evaluated + "( " + this.expStringDump(term.value.term, depth - 1) + " )"
             }
             case "comb":
             case "funcref":
@@ -585,15 +590,15 @@ export class Evaluator {
                 return term.value.toString();
             case "app":
                 {
-                    return " ( " + this.evalExpStr(term.lhs, depth - 1) + " " +
-                        this.evalExpStr(term.rhs, depth - 1) + " ) ";
+                    return " ( " + this.expStringDump(term.lhs, depth - 1) + " " +
+                        this.expStringDump(term.rhs, depth - 1) + " ) ";
                 }
             case "arr":
                 if (term.array.length > 5)
                     return "[...]"
                 else {
                     let res = "[ "
-                    term.array.forEach(x => { res = res += this.evalExpStr(x, depth - 1) + ", " })
+                    term.array.forEach(x => { res = res += this.expStringDump(x, depth - 1) + ", " })
                     res += " ]"
                     return res
                 }
@@ -799,39 +804,5 @@ function evalCombExpr(top: Comb, lhs_stack: App[]): [GraphN, boolean] {
             return [top, false]
         default:
             throw new EvaluationException("unknown function " + top.name)
-    }
-}
-
-
-export function evalExpStr(term: GraphN): string {
-    switch (term.type) {
-        case "numref":
-            return "_" + term.value
-        case "ptr": {
-            const evaluated = term.value.evaluated ? "T" : "F"
-            return "ptr,e=" + evaluated + "( " + evalExpStr(term.value.term) + " )"
-        }
-        case "comb":
-        case "funcref":
-            return term.name;
-        case "str":
-            // if (term.value.length > 20)
-            // return "string"
-            return "string \"" + term.value + "\""
-        case "int":
-            return term.value.toString();
-        case "arr": {
-            let res = "array, size=" + term.array.length + " ["
-            for (let i = 0; i < term.array.length && i < 5; i++) {
-                res += evalExpStr(term.array[i]) + ", "
-            }
-            return res + "] "
-        }
-        case "app":
-            {
-                return " ( " + evalExpStr(term.lhs) + " " + evalExpStr(term.rhs) + " ) ";
-            }
-        default:
-            throw new Error("invalid lambda term type");
     }
 }

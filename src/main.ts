@@ -4,7 +4,7 @@
  * combinator output of MicroHs as an argument.
  */
 
-import { evalExpStr, Evaluator } from "./mhs/mhs_eval"
+import { Evaluator } from "./mhs/mhs_eval"
 import { StandardInput, StandardOutput } from "./node_tools"
 import { MhsParser } from "./mhs/mhs_parser"
 
@@ -23,6 +23,6 @@ const ev = evaluator.execio(top)
 
 const match = evaluator.match1("IO.return", ev)
 if (match === null || match.type !== 'comb' || match.name !== 'I') {
-    console.log("IO execution failure, instead of (IO.return I) got " + evalExpStr(ev))
+    console.log("IO execution failure, instead of (IO.return I) got " + evaluator.expStringDump(ev))
     process.exit(1)
 }

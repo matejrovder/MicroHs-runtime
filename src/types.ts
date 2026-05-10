@@ -4,13 +4,6 @@
  * helper functions and other functions concerning types.
  */
 
-import { LT } from "./lambda/lambda_types";
-
-type Var = {
-    type: 'var';
-    varN: string;
-}
-
 // Types of graph nodes
 
 type App = {
@@ -111,33 +104,5 @@ function stringToCons(x: string): App | Const {
     return res
 }
 
-function expStr(term: LT | GraphN): string {
-    // TODO: remove and replace
-    switch (term.type) {
-        case "var":
-            {
-                return term.varN;
-            }
-        case "comb":
-        case "funcref":
-            return term.name;
-        case "str":
-            return term.value;
-        case "int":
-            return term.value.toString();
-        case "app":
-        case "ltapp":
-            {
-                return " ( " + expStr(term.lhs) + " " + expStr(term.rhs) + " ) ";
-            }
-        case "abs":
-            {
-                return " ( λ " + term.var + " . " + expStr(term.term) + " ) ";
-            }
-        default:
-            throw new Error("invalid lambda term type");
-    }
-}
 
-
-export { GraphN, Pointer, PointedTo, Var, App, Const, Arr, Comb, Str, Int, FuncRef, combinator, strConst, stringToCons, intConst, app, funcref, expStr }
+export { GraphN, Pointer, PointedTo, App, Const, Arr, Comb, Str, Int, FuncRef, combinator, strConst, stringToCons, intConst, app, funcref }

@@ -1,4 +1,4 @@
-import { Str, Int, FuncRef, GraphN } from '../types'
+import {FuncRef, GraphN, Int, Str} from '../types'
 
 type LT = Var | LTApp | Abs | LTConst | GraphN
 type LTConst = | Str | Int | FuncRef;
@@ -93,4 +93,29 @@ function makeAbstraction(x: string, term: LT) {
     return lam(x, term);
 }
 
-export { LT, LTConst, Var, LTApp, Abs, variable, strConst, intConst, ltapp, funcref, makeAbstraction, etaReduction }
+
+function simpleExpString(term: LT | GraphN): string {
+    switch (term.type) {
+        case "var": {
+            return term.varN;
+        }
+        case "comb":
+        case "funcref":
+            return term.name;
+        case "str":
+            return term.value;
+        case "int":
+            return term.value.toString();
+        case "app":
+        case "ltapp": {
+            return " ( " + simpleExpString(term.lhs) + " " + simpleExpString(term.rhs) + " ) ";
+        }
+        case "abs": {
+            return " ( λ " + term.var + " . " + simpleExpString(term.term) + " ) ";
+        }
+        default:
+            throw new Error("invalid lambda term type");
+    }
+}
+
+export { LT, LTConst, Var, LTApp, Abs, variable, strConst, intConst, ltapp, funcref, makeAbstraction, etaReduction, simpleExpString }

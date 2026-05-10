@@ -1,6 +1,6 @@
 import { Parser } from './parser'
-import { expStr } from "../types";
 import { compileSKI } from "./ski_compile";
+import {simpleExpString} from "./lambda_types";
 
 function test(name: string, input: string, output: string) {
     const p1 = new Parser(input)
@@ -9,10 +9,10 @@ function test(name: string, input: string, output: string) {
     const p2 = new Parser(output)
     const expected = p2.parse(null)
 
-    if (expStr(compiled) !== expStr(expected)) {
+    if (simpleExpString(compiled) !== simpleExpString(expected)) {
         console.log("Test " + name + " failed.")
-        console.log("Expected: " + expStr(expected))
-        console.log("Actual: " + expStr(compiled))
+        console.log("Expected: " + simpleExpString(expected))
+        console.log("Actual: " + simpleExpString(compiled))
     }
     else {
         console.log("Test " + name + " success.")

@@ -1,7 +1,8 @@
-import { expStr, GraphN } from '../types'
+import { GraphN } from '../types'
 import { compileSKI } from "./ski_compile";
 import { Parser } from './parser'
 import { evalExpStr, Evaluator } from './lambda_eval'
+import {simpleExpString} from "./lambda_types";
 
 const fs = require('fs')
 
@@ -11,11 +12,11 @@ let p = new Parser(input_lines[0]);
 let n = p.parse(null);
 // n.printTree(0);
 console.log(n);
-console.log(expStr(n));
+console.log(simpleExpString(n));
 
 let ski = compileSKI(n);
 console.log(ski);
-console.log(expStr(ski));
+console.log(simpleExpString(ski));
 
 let etor = new Evaluator()
 let ev: GraphN = etor.evaluate(ski)
