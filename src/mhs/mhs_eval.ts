@@ -3,7 +3,7 @@ import {
     App, app, Arr, Comb, combinator, FuncRef, GraphN, intConst, stringToCons, PointedTo, Pointer, strConst
 } from '../types'
 import {
-    arithmeticI, arithmeticU, comparison, isNamed, makePointer, performArithmetic,
+    arithmeticI, arithmeticU, comparison, equalTerms, isNamed, makePointer, performArithmetic,
     threeWayCompareI, threeWayCompareU
 } from "./eval_aux";
 
@@ -358,11 +358,10 @@ export class Evaluator {
                 return [top, false]
             case "equal":
             case "sequal": {
-                // TODO: terrible hack
                 if (lhs_stack.length < 2) return [top, false]
                 const x = this.evaluate(lhs_stack.pop()!.rhs)
                 const y = this.evaluate(lhs_stack.pop()!.rhs)
-                return [(evalExpStr(x) === evalExpStr(y)) ? combinator("A") : combinator("K"), true]
+                return [equalTerms(x, y) ? combinator("A") : combinator("K"), true]
             }
             case "+":
             case "I+":
