@@ -1,0 +1,12 @@
+hi
+10
+
+bin: 5
+bin: 4
+bin: 3
+bin: 2
+bin: 1
+bin: 0
+31
+
+5

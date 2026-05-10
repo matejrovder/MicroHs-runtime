@@ -1,0 +1,8 @@
+Cons R Nil
+Coordinates (-10) 0
+Coordinates 10 10
+Cons (East 15) Nil
+Cons R (Cons L (Cons S Nil))
+True
+Just 2
+9
