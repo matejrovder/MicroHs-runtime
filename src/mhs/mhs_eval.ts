@@ -241,12 +241,12 @@ export class Evaluator {
         }
     }
 
-    // TODO: make private - to hide writeback arg
     /**
      * Evaluates the expression to WHNF.
      * @param node - the expression to evaluate
      * @param {PointedTo} writeback - optional, will be updated with the current state
      *                                of the expression after each reduction step
+     *                                (for internal use only)
      * @returns evaluated expression in WHNF
      */
     evaluate(node: GraphN, writeback: PointedTo | null = null): GraphN {
