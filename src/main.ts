@@ -4,9 +4,9 @@
  * combinator output of MicroHs as an argument.
  */
 
-import { evalExpStr, Evaluator } from "./mhs_eval"
-import { StandardInput, StandardOutput } from "../node_tools"
-import { MhsParser } from "./mhs_parser"
+import { evalExpStr, Evaluator } from "./mhs/mhs_eval"
+import { StandardInput, StandardOutput } from "./node_tools"
+import { MhsParser } from "./mhs/mhs_parser"
 
 const fs = require('fs')
 

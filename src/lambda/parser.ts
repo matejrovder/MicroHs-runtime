@@ -42,14 +42,14 @@ export class Parser {
             case token.bracketleft:
                 {
                     this.getNextToken();
-                    let rhs = this.parseBracketExpr(null);
+                    const rhs = this.parseBracketExpr(null);
                     if (lhs !== null)
                         lhs = ltapp(lhs, rhs);
                     else
                         lhs = rhs
                     break;
                 }
-            case token.number: // TODO: DRY
+            case token.number:
                 {
                     const c = intConst(this.lexer.numVal)
                     if (lhs === null) {

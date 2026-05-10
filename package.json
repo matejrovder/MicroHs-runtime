@@ -14,7 +14,6 @@
   },
   "scripts": {
     "test": "jest",
-    "start": "node dist/mhs/mhs_run.js",
     "build": "tsc"
   }
 }
