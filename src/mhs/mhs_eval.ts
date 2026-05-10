@@ -47,10 +47,9 @@ export class Evaluator {
     /**
      * Puts a character with ASCII code from argument to output stream.
      */
-    private putCharFromInt(x: GraphN): GraphN {
+    private putCharFromInt(x: GraphN): void {
         if (x.type === 'int') {
             this.output.print(String.fromCodePoint(Number(x.value)))
-            return strConst("putChar")
         }
         else
             throw new EvaluationException("invalid node type")
@@ -192,6 +191,29 @@ export class Evaluator {
                             if (y.type !== 'int' || y.value < 0 || y.value >= x.array.length)
                                 throw new EvaluationException("Invalid array index")
                             return x.array[Number(y.value)]
+                        }
+                        case "A.size": {
+                            if (lhs_stack.length < 1)
+                                throw new EvaluationException(top.name + " arguments missing")
+                            const x = this.evaluate(lhs_stack.pop()!.rhs)
+
+                            if (x.type !== 'arr')
+                                throw new EvaluationException("A.read: invalid array")
+                            return intConst(BigInt(x.array.length))
+                        }
+                        case "A.write": {
+                            if (lhs_stack.length < 3)
+                                throw new EvaluationException(top.name + " arguments missing")
+                            const x = this.evaluate(lhs_stack.pop()!.rhs)
+                            const y = this.evaluate(lhs_stack.pop()!.rhs)
+                            const z = lhs_stack.pop()!.rhs
+
+                            if (x.type !== 'arr')
+                                throw new EvaluationException("A.read: invalid array")
+                            if (y.type !== 'int' || y.value < 0 || y.value >= x.array.length)
+                                throw new EvaluationException("Invalid array index")
+                            x.array[Number(y.value)] = z
+                            return combinator("I")
                         }
                         case "putb": {
                             if (lhs_stack.length < 2)
@@ -355,9 +377,23 @@ export class Evaluator {
             case "getb":
             case "IO.stdout":
             case "IO.stdin":
+                // no operation, these are IO ops
                 return [top, false]
+            case "ord":
+            case "chr":
+            case "Itoi":
+            case "itoI":
+            case "utoU":
+            case "Utou": {
+                //  return the argument unchanged
+                if (lhs_stack.length < 1) { return [top, false] }
+                else {
+                    return [lhs_stack.pop()!.rhs, true]
+                }
+            }
             case "equal":
             case "sequal": {
+                // equality operator used by older MicroHs
                 if (lhs_stack.length < 2) return [top, false]
                 const x = this.evaluate(lhs_stack.pop()!.rhs)
                 const y = this.evaluate(lhs_stack.pop()!.rhs)
@@ -371,6 +407,9 @@ export class Evaluator {
             case "-":
             case "I-":
                 return this.performStrictFunc2(top, lhs_stack, arithmeticI((p1, p2) => p1 - p2))
+            case "subtract":
+            case "Isubtract":
+                return this.performStrictFunc2(top, lhs_stack, arithmeticI((p1, p2) => p2 - p1))
             case "u-":
                 return this.performStrictFunc2(top, lhs_stack, arithmeticU((p1, p2) => p1 - p2))
             case "*":
@@ -431,6 +470,9 @@ export class Evaluator {
             case "or":
             case "Ior":
                 return this.performStrictFunc2(top, lhs_stack, arithmeticU((p1, p2) => p1 | p2))
+            case "xor":
+            case "Ixor":
+                return this.performStrictFunc2(top, lhs_stack, arithmeticU((p1, p2) => p1 ^ p2))
             case "shr":
             case "Ishr":
                 return this.performStrictFunc2(top, lhs_stack, arithmeticU((p1, p2) =>
@@ -453,21 +495,11 @@ export class Evaluator {
                 const x = this.evaluate(lhs_stack.pop()!.rhs)
                 return [performArithmetic(intConst(0n), x, (p1, p2) => BigInt.asIntN(64, p1 - p2)), true]
             }
-            case "uneg": {
+            case "uneg":
+            case "Iuneg": {
                 if (lhs_stack.length < 1) return [top, false]
                 const x = this.evaluate(lhs_stack.pop()!.rhs)
                 return [performArithmetic(intConst(0n), x, (p1, p2) => BigInt.asUintN(64, p1 - p2)), true]
-            }
-            case "ord":
-            case "chr":
-            case "Itoi":
-            case "itoI":
-            case "utoU":
-            case "Utou": {
-                if (lhs_stack.length < 1) { return [top, false] }
-                else {
-                    return [lhs_stack.pop()!.rhs, true]
-                }
             }
             case "raise": {
                 if (lhs_stack.length < 1) return [top, false]
