@@ -43,7 +43,7 @@ export class MhsParser {
      * @returns the root of the combinator graph and a map of numbered shared expressions.
      * @throws {ParsingException}
      */
-    parse(): [GraphN, Map<bigint, Pointer>] {
+    parse(): GraphN {
         const stack: GraphN[] = []
         const pointers: Map<bigint, Pointer> = new Map()
         while (true) {
@@ -79,7 +79,9 @@ export class MhsParser {
                         stack.push(referenced)
                     }
                     else {
-                        stack.push({ 'type': 'numref', 'value': this.lexer.numVal })
+                        const ptr = makePointer(strConst("undefined"))
+                        pointers.set(this.lexer.numVal, ptr)
+                        stack.push(ptr)
                     }
                     break
                 }
@@ -88,9 +90,16 @@ export class MhsParser {
                     if (stack.length < 1)
                         throw new ParsingException("Shared expression creation with empty stack")
                     const top = stack.pop()!
-                    const ptr = makePointer(top)
-                    stack.push(ptr)
-                    pointers.set(this.lexer.numVal, ptr)
+                    const referenced = pointers.get(this.lexer.numVal)
+                    if (referenced != undefined) {
+                        referenced.value.n = top
+                        stack.push(referenced)
+                    }
+                    else {
+                        const ptr = makePointer(top)
+                        pointers.set(this.lexer.numVal, ptr)
+                        stack.push(ptr)
+                    }
                     break
                 }
                 case mhsToken.endbrace: {
@@ -98,7 +107,7 @@ export class MhsParser {
                         throw new ParsingException("Empty stack at program end '}'")
                     if (stack.length > 1)
                         throw new ParsingException("Stack length > 1 at program end '}'")
-                    return [stack.pop()!, pointers]
+                    return stack.pop()!
                 }
                 case mhsToken.eof: {
                     throw new ParsingException("Unexpected EOF while parsing")

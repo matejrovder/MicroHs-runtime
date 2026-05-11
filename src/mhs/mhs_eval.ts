@@ -22,15 +22,12 @@ export interface Input {
  *
  * @param {Output} output - object implementing the Output interface, used for print, putChar, etc.
  * @param {Input} input - object implementing the Input interface, used for getLine, etc.
- * @param {Map<bigint, Pointer>} pointers - the map of numbered shared expressions
  */
 export class Evaluator {
-    pointers: Map<bigint, Pointer>
     output: Output
     input: Input
 
-    constructor(output: Output, input: Input, pointers: Map<bigint, Pointer> = new Map()) {
-        this.pointers = pointers
+    constructor(output: Output, input: Input) {
         this.output = output
         this.input = input
     }
@@ -78,7 +75,6 @@ export class Evaluator {
             //     break;
             // }
             case 'ptr':
-            case 'numref':
                 throw new EvaluationException("unwrap")
             default:
                 return top
@@ -145,14 +141,6 @@ export class Evaluator {
 
                     top = top.value.n
                     break
-                case "numref": {
-                    const ref = this.pointers.get(top.value)
-                    if (ref == undefined)
-                        throw new EvaluationException("Invalid shared expression reference: _" + top.value)
-                    else
-                        top = ref
-                    break;
-                }
                 case "comb":
                 case "funcref":
                     switch (top.name) {
@@ -272,14 +260,6 @@ export class Evaluator {
 
                     top = top.value.n
                     break;
-                case 'numref': {
-                    const ref = this.pointers.get(top.value)
-                    if (ref == undefined)
-                        throw new EvaluationException("Invalid shared expression reference: _" + top.value)
-                    else
-                        top = ref
-                    break;
-                }
                 case "comb":
                     [top, loopAgain] = evalCombExpr(top, lhs_stack)
                     break
@@ -306,9 +286,6 @@ export class Evaluator {
             top = lhs_stack[0]
         
         np.n = top
-
-        if (top.type === 'ptr' || top.type === 'numref')
-            throw new EvaluationException("invalid eval") // sanity check
 
         return top;
     }
@@ -584,8 +561,6 @@ export class Evaluator {
         if (depth <= 0)
             return ">...<"
         switch (term.type) {
-            case "numref":
-                return "_" + term.value + this.expStringDump(this.pointers.get(term.value)!, depth - 1)
             case "ptr": {
                 return "ptr:" + "( " + this.expStringDump(term.value.n, depth - 1) + " )"
             }

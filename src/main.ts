@@ -17,8 +17,8 @@ if (process.argv.length < 3) {
 
 const input = fs.readFileSync(process.argv[2]).toString()
 
-const [top, pointers] = new MhsParser(input).parse()
-const evaluator = new Evaluator(new StandardOutput, new StandardInput, pointers)
+const top = new MhsParser(input).parse()
+const evaluator = new Evaluator(new StandardOutput, new StandardInput)
 const ev = evaluator.execio({n: top})
 
 const match = evaluator.match1("IO.return", ev)

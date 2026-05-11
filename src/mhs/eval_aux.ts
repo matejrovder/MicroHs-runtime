@@ -116,9 +116,6 @@ export function equalTerms(term1: GraphN, term2: GraphN): boolean {
         return false
 
     switch (term1.type) {
-        case "numref":
-            // doesn't work across Evaluator instances
-            return term1.value === (term2 as typeof term1).value
         case "ptr": {
             const t2 = term2 as typeof term1
             return term1.value === t2.value || equalTerms(term1.value.n, t2.value.n)

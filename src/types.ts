@@ -48,13 +48,8 @@ type Pointer = {
     value: Nodeptr;
 }
 
-type NumberedRef = {
-    type: 'numref'
-    value: bigint
-}
-
 /** the Graph node type */
-type GraphN = App | Const | Pointer | NumberedRef
+type GraphN = App | Const | Pointer 
 
 
 // Functions to simplify graph node creation
