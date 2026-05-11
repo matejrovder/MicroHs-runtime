@@ -1,6 +1,7 @@
 import {EvaluationException, ProgramRaisedException} from '../exceptions';
 import {
-    App, app, Arr, Comb, combinator, FuncRef, GraphN, intConst, stringToCons, PointedTo, Pointer, strConst
+    App, app, Arr, Comb, combinator, FuncRef, GraphN, intConst, stringToCons, PointedTo, Pointer, strConst,
+    npapp, Nodeptr, npappptr
 } from '../types'
 import {
     arithmeticI, arithmeticU, comparison, equalTerms, isNamed, makePointer, performArithmetic,
@@ -38,10 +39,10 @@ export class Evaluator {
      * Performs (unsafe) IO during evaluation. Counterpart of Haskell's unsafePerformIO.
      */
     private performIO(x: GraphN): GraphN {
-        x = this.execio(x)
-        if (x.type !== 'app' || !isNamed(this.unwrapPtr(x.lhs), "IO.return"))
+        x = this.execio({n: x})
+        if (x.type !== 'app' || !isNamed(this.unwrapPtr(x.lhs.n), "IO.return"))
             throw new EvaluationException("wrong performio")
-        return x.rhs
+        return x.rhs.n
     }
 
     /**
@@ -60,22 +61,25 @@ export class Evaluator {
      */
     private unwrapPtr(top: GraphN): GraphN {
         switch (top.type) {
-            case 'ptr':
-                if (!top.value.evaluated) {
-                    top.value.term = this.evaluate(top.value.term, top.value)
-                    top.value.evaluated = true
-                }
+            // case 'ptr':
+            //     if (!top.value.evaluated) {
+            //         top.value.n = this.evaluate(top.value.n, top.value)
+            //         top.value.evaluated = true
+            //     }
 
-                return top.value.term
-                break;
-            case 'numref': {
-                const ref = this.pointers.get(top.value)
-                if (ref == undefined)
-                    throw new EvaluationException("Invalid shared expression reference: _" + top.value)
-                else
-                    return ref
-                break;
-            }
+            //     return top.value.n
+            //     break;
+            // case 'numref': {
+            //     const ref = this.pointers.get(top.value)
+            //     if (ref == undefined)
+            //         throw new EvaluationException("Invalid shared expression reference: _" + top.value)
+            //     else
+            //         return ref
+            //     break;
+            // }
+            case 'ptr':
+            case 'numref':
+                throw new EvaluationException("unwrap")
             default:
                 return top
         }
@@ -85,7 +89,7 @@ export class Evaluator {
      * Executes Haskell/MicroHs monad IO. Corresponds to older MicroHs versions'
      * execio function.
      */
-    execio(node: GraphN): GraphN {
+    execio(node: Nodeptr): GraphN {
         let top = node
         const cont: GraphN[] = [] // continuation of execio
 
@@ -96,7 +100,7 @@ export class Evaluator {
             const bindMatch = this.match2("IO.>>=", whnf)
             if (bindMatch) {
                 const [r, s] = bindMatch
-                top = r
+                top.n = r
                 cont.push(s)
                 continue
             }
@@ -104,19 +108,19 @@ export class Evaluator {
             const thenMatch = this.match2("IO.>>", whnf)
             if (thenMatch) {
                 const [r, s] = thenMatch
-                top = r
+                top.n = r
                 cont.push(app(combinator("K"), s))
                 continue
             }
 
-            const prim = this.execPrimitiveIO(whnf)
+            const prim = this.execPrimitiveIO({n: whnf})
             // label rest in mhs code
             if (cont.length === 0) {
                 return app(combinator("IO.return"), prim)
             }
             else {
                 const r = cont.pop()!
-                top = app(r, prim)
+                top.n = app(r, prim)
                 continue
             }
         }
@@ -126,17 +130,18 @@ export class Evaluator {
      * Executes IO primitive operations. Corresponds to the 'execute'
      * label in MicroHs execio code.
      */
-    private execPrimitiveIO(top: GraphN): GraphN {
+    private execPrimitiveIO(np: Nodeptr): GraphN {
         const lhs_stack: App[] = []
+        let top: GraphN = np.n
 
         while (true) {
             switch (top.type) {
                 case "app":
                     lhs_stack.push(top)
-                    top = top.lhs
+                    top = top.lhs.n
                     break
                 case "ptr":
-                    top = top.value.term
+                    top = top.value.n
                     break
                 case "numref": {
                     const ref = this.pointers.get(top.value)
@@ -162,13 +167,13 @@ export class Evaluator {
                             if (lhs_stack.length < 1)
                                 throw new EvaluationException(top.name + " arguments missing")
 
-                            return lhs_stack.pop()!.rhs
+                            return lhs_stack.pop()!.rhs.n
                         }
                         case "A.alloc": {
                             if (lhs_stack.length < 2)
                                 throw new EvaluationException(top.name + " arguments missing")
                             const x = this.evaluate(lhs_stack.pop()!.rhs)
-                            const y = makePointer(lhs_stack.pop()!.rhs)
+                            const y = lhs_stack.pop()!.rhs
 
                             if (x.type === 'int' && x.value > 0) {
                                 const arr = []
@@ -190,7 +195,7 @@ export class Evaluator {
                                 throw new EvaluationException("A.read: invalid array")
                             if (y.type !== 'int' || y.value < 0 || y.value >= x.array.length)
                                 throw new EvaluationException("Invalid array index")
-                            return x.array[Number(y.value)]
+                            return x.array[Number(y.value)].n // TODO: return indir here
                         }
                         case "A.size": {
                             if (lhs_stack.length < 1)
@@ -249,24 +254,24 @@ export class Evaluator {
      *                                (for internal use only)
      * @returns evaluated expression in WHNF
      */
-    evaluate(node: GraphN, writeback: PointedTo | null = null): GraphN {
+    evaluate(np: Nodeptr | PointedTo): GraphN {
         const lhs_stack: App[] = []
-        let top = node
+        let top = np.n
         let loopAgain = true
 
         while (loopAgain) {
             switch (top.type) {
                 case 'app':
                     lhs_stack.push(top)
-                    top = top.lhs
+                    top = top.lhs.n
                     break;
                 case 'ptr':
                     if (!top.value.evaluated) {
-                        top.value.term = this.evaluate(top.value.term, top.value)
+                        top.value.n = this.evaluate(top.value)
                         top.value.evaluated = true
                     }
 
-                    top = top.value.term
+                    top = top.value.n
                     break;
                 case 'numref': {
                     const ref = this.pointers.get(top.value)
@@ -287,19 +292,21 @@ export class Evaluator {
             }
 
             // this is where we replace all occurences of this node in the graph with the evaluated node
-            if (writeback !== null) {
-                if (lhs_stack.length > 0)
-                    // as we are deliberately changing other occurences of the expression, we can break immutability
-                    lhs_stack[lhs_stack.length - 1].lhs = top
-                writeback.term = lhs_stack[0] ?? top
-            }
+            if (lhs_stack.length >= 1)
+                lhs_stack[lhs_stack.length - 1].lhs.n = top
+            np.n = lhs_stack[0] ?? top
         }
 
-        while (lhs_stack.length > 0) {
-            // const rhs = evaluate(lhs_stack.pop()!.rhs)
-            const rhs = lhs_stack.pop()!.rhs // not evaluating here, to keep lazy eval
-            top = app(top, rhs)
-        }
+        // while (lhs_stack.length > 0) {
+        //     // const rhs = evaluate(lhs_stack.pop()!.rhs)
+        //     const rhs = lhs_stack.pop()!.rhs // not evaluating here, to keep lazy eval
+        //     top = app(top, rhs)
+        // }
+
+        if (lhs_stack.length > 0)
+            top = lhs_stack[0]
+        
+        np.n = top
 
         if (top.type === 'ptr' || top.type === 'numref')
             throw new EvaluationException("invalid eval") // sanity check
@@ -315,15 +322,15 @@ export class Evaluator {
         if (node.type !== 'app')
             return null
 
-        const lhs = this.unwrapPtr(node.lhs)
+        const lhs = this.unwrapPtr(node.lhs.n)
         if (lhs.type !== 'app')
             return null
 
-        const head = this.unwrapPtr(lhs.lhs)
+        const head = this.unwrapPtr(lhs.lhs.n)
         if (!isNamed(head, combName))
             return null
 
-        return [lhs.rhs, node.rhs]
+        return [lhs.rhs.n, node.rhs.n]
     }
 
     /**
@@ -334,11 +341,11 @@ export class Evaluator {
         if (node.type !== 'app')
             return null
 
-        const lhs = this.unwrapPtr(node.lhs)
+        const lhs = this.unwrapPtr(node.lhs.n)
         if (!isNamed(lhs, combName))
             return null
 
-        return node.rhs
+        return node.rhs.n
     }
 
     /**
@@ -388,7 +395,7 @@ export class Evaluator {
                 //  return the argument unchanged
                 if (lhs_stack.length < 1) { return [top, false] }
                 else {
-                    return [lhs_stack.pop()!.rhs, true]
+                    return [lhs_stack.pop()!.rhs.n, true] //TODO:indir
                 }
             }
             case "equal":
@@ -509,22 +516,22 @@ export class Evaluator {
             }
             case "raise": {
                 if (lhs_stack.length < 1) return [top, false]
-                const ex = lhs_stack.pop()!.rhs
+                const ex = lhs_stack.pop()!.rhs.n
                 // MicroHs magic to evaluate exception message
                 const combShowExn = app(combinator("U"), app(combinator("U"), app(combinator("K2"), combinator("A"))))
-                const x = this.consToString(this.evaluate(app(combShowExn, ex)))
+                const x = this.consToString(this.evaluate({n: app(combShowExn, ex)}))
 
                 throw new ProgramRaisedException(x)
             }
             case "IO.performIO": {
                 if (lhs_stack.length < 1) return [top, false]
                 const x = lhs_stack.pop()!.rhs
-                return [this.performIO(x), true]
+                return [this.performIO(x.n), true]
             }
             case "seq": {
                 if (lhs_stack.length < 2) return [top, false]
                 this.evaluate(lhs_stack.pop()!.rhs) // evaluate x
-                const y = lhs_stack.pop()!.rhs
+                const y = lhs_stack.pop()!.rhs.n
                 return [y, true]
             }
             case "fromUTF8": {
@@ -548,14 +555,14 @@ export class Evaluator {
     private consToString(node: GraphN): string {
         let res = ""
         while (true) {
-            node = this.evaluate(node)
+            node = this.evaluate({n: node})
             if (isNamed(node, "K"))
                 return res
             const match = this.match2("O", node)
             if (match === null)
                 break
             const [cc, next] = match
-            const c = this.evaluate(cc)
+            const c = this.evaluate({n: cc})
             if (c.type !== 'int')
                 throw new EvaluationException("invalid char")
             if (c.value > 0x80)
@@ -582,7 +589,7 @@ export class Evaluator {
                 return "_" + term.value + this.expStringDump(this.pointers.get(term.value)!, depth - 1)
             case "ptr": {
                 const evaluated = term.value.evaluated ? "T" : "F"
-                return "ptr,e=" + evaluated + "( " + this.expStringDump(term.value.term, depth - 1) + " )"
+                return "ptr,e=" + evaluated + "( " + this.expStringDump(term.value.n, depth - 1) + " )"
             }
             case "comb":
             case "funcref":
@@ -596,15 +603,15 @@ export class Evaluator {
                 return term.value.toString();
             case "app":
                 {
-                    return " ( " + this.expStringDump(term.lhs, depth - 1) + " " +
-                        this.expStringDump(term.rhs, depth - 1) + " ) ";
+                    return " ( " + this.expStringDump(term.lhs.n, depth - 1) + " " +
+                        this.expStringDump(term.rhs.n, depth - 1) + " ) ";
                 }
             case "arr":
                 if (term.array.length > 5)
                     return "[...]"
                 else {
                     let res = "[ "
-                    term.array.forEach(x => { res = res += this.expStringDump(x, depth - 1) + ", " })
+                    term.array.forEach(x => { res = res += this.expStringDump(x.n, depth - 1) + ", " })
                     res += " ]"
                     return res
                 }
@@ -629,31 +636,32 @@ function evalCombExpr(top: Comb, lhs_stack: App[]): [GraphN, boolean] {
             else {
                 const f = lhs_stack.pop()!.rhs
                 const g = lhs_stack.pop()!.rhs
-                const x = makePointer(lhs_stack.pop()!.rhs)
+                const x = lhs_stack.pop()!.rhs
 
-                const lhs = app(f, x)
-                const rhs = app(g, x)
-                return [app(lhs, rhs), true]
+                const lhs = npappptr(f, x)
+                const rhs = npappptr(g, x)
+                return [npapp(lhs, rhs), true]
             }
         case "K":
             if (lhs_stack.length < 2) { return [top, false] }
             else {
                 const x = lhs_stack.pop()!.rhs
                 lhs_stack.pop() // y
-                return [x, true]
+                return [x.n, true]
             }
         case "I":
         // case "ord":
         // case "chr":
             if (lhs_stack.length < 1) { return [top, false] }
             else {
-                return [lhs_stack.pop()!.rhs, true]
+                return [lhs_stack.pop()!.rhs.n, true]
             }
         case "Y":
             if (lhs_stack.length < 1) { return [top, false] }
             else {
-                const x = makePointer(lhs_stack.pop()!.rhs)
-                return [app(x, app(combinator("Y"), x)), true]
+                const n = lhs_stack.pop()!
+                const n_x: App = {type: 'app', lhs: n.rhs, rhs: {n: n}}
+                return [n_x, true]
             }
         case "B":
             if (lhs_stack.length < 3) { return [top, false] }
@@ -662,7 +670,7 @@ function evalCombExpr(top: Comb, lhs_stack: App[]): [GraphN, boolean] {
                 const g = lhs_stack.pop()!.rhs
                 const x = lhs_stack.pop()!.rhs
 
-                return [app(f, app(g, x)), true]
+                return [npapp(f, npappptr(g, x)), true]
             }
         case "C":
             if (lhs_stack.length < 3) { return [top, false] }
@@ -671,7 +679,7 @@ function evalCombExpr(top: Comb, lhs_stack: App[]): [GraphN, boolean] {
                 const g = lhs_stack.pop()!.rhs
                 const x = lhs_stack.pop()!.rhs
 
-                return [app(app(f, x), g), true]
+                return [npapp(npappptr(f, x), g), true]
             }
         case "S'":
             if (lhs_stack.length < 4) { return [top, false] }
@@ -679,9 +687,9 @@ function evalCombExpr(top: Comb, lhs_stack: App[]): [GraphN, boolean] {
                 const c = lhs_stack.pop()!.rhs
                 const f = lhs_stack.pop()!.rhs
                 const g = lhs_stack.pop()!.rhs
-                const x = makePointer(lhs_stack.pop()!.rhs)
+                const x = lhs_stack.pop()!.rhs
 
-                return [app(app(c, app(f, x)), app(g, x)), true]
+                return [npapp(npappptr(c, npappptr(f, x)), npappptr(g, x)), true]
             }
         case "B*": // not used by MicroHs
             if (lhs_stack.length < 4) { return [top, false] }
@@ -691,7 +699,7 @@ function evalCombExpr(top: Comb, lhs_stack: App[]): [GraphN, boolean] {
                 const g = lhs_stack.pop()!.rhs
                 const x = lhs_stack.pop()!.rhs
 
-                return [app(c, app(f, app(g, x))), true]
+                return [npapp(c, npappptr(f, npappptr(g, x))), true]
             }
         case "C'":
             if (lhs_stack.length < 4) { return [top, false] }
@@ -701,7 +709,7 @@ function evalCombExpr(top: Comb, lhs_stack: App[]): [GraphN, boolean] {
                 const g = lhs_stack.pop()!.rhs
                 const x = lhs_stack.pop()!.rhs
 
-                return [app(app(c, app(f, x)), g), true]
+                return [npapp(npappptr(c, npappptr(f, x)), g), true]
             }
         case "B'":
             if (lhs_stack.length < 4) { return [top, false] }
@@ -711,21 +719,21 @@ function evalCombExpr(top: Comb, lhs_stack: App[]): [GraphN, boolean] {
                 const z = lhs_stack.pop()!.rhs
                 const w = lhs_stack.pop()!.rhs
 
-                return [app(app(x, y), app(z, w)), true]
+                return [npapp(npappptr(x, y), npappptr(z, w)), true]
             }
         case "A":
             if (lhs_stack.length < 2) { return [top, false] }
             else {
                 lhs_stack.pop() // x
                 const y = lhs_stack.pop()!.rhs
-                return [y, true]
+                return [y.n, true]
             }
         case "U":
             if (lhs_stack.length < 2) { return [top, false] }
             else {
                 const x = lhs_stack.pop()!.rhs
                 const y = lhs_stack.pop()!.rhs
-                return [app(y, x), true]
+                return [npapp(y, x), true]
             }
         case "Z":
             if (lhs_stack.length < 3) { return [top, false] }
@@ -734,7 +742,7 @@ function evalCombExpr(top: Comb, lhs_stack: App[]): [GraphN, boolean] {
                 const y = lhs_stack.pop()!.rhs
                 lhs_stack.pop() // z
 
-                return [app(x, y), true]
+                return [npapp(x, y), true]
             }
         case "P":
             if (lhs_stack.length < 3) { return [top, false] }
@@ -743,7 +751,7 @@ function evalCombExpr(top: Comb, lhs_stack: App[]): [GraphN, boolean] {
                 const y = lhs_stack.pop()!.rhs
                 const z = lhs_stack.pop()!.rhs
 
-                return [app(app(z, x), y), true]
+                return [npapp(npappptr(z, x), y), true]
             }
         case "R":
             if (lhs_stack.length < 3) { return [top, false] }
@@ -752,7 +760,7 @@ function evalCombExpr(top: Comb, lhs_stack: App[]): [GraphN, boolean] {
                 const y = lhs_stack.pop()!.rhs
                 const z = lhs_stack.pop()!.rhs
 
-                return [app(app(y, z), x), true]
+                return [npapp(npappptr(y, z), x), true]
             }
         case "O":
             if (lhs_stack.length < 4) { return [top, false] }
@@ -762,7 +770,7 @@ function evalCombExpr(top: Comb, lhs_stack: App[]): [GraphN, boolean] {
                 lhs_stack.pop() // z
                 const w = lhs_stack.pop()!.rhs
 
-                return [app(app(w, x), y), true]
+                return [npapp(npappptr(w, x), y), true]
             }
         case "K2":
             if (lhs_stack.length < 3) { return [top, false] }
@@ -771,7 +779,7 @@ function evalCombExpr(top: Comb, lhs_stack: App[]): [GraphN, boolean] {
                 lhs_stack.pop() // y
                 lhs_stack.pop() // z
 
-                return [x, true]
+                return [x.n, true]
             }
         case "K3":
             if (lhs_stack.length < 4) { return [top, false] }
@@ -781,7 +789,7 @@ function evalCombExpr(top: Comb, lhs_stack: App[]): [GraphN, boolean] {
                 lhs_stack.pop() // z
                 lhs_stack.pop() // w
 
-                return [x, true]
+                return [x.n, true]
             }
         case "K4":
             if (lhs_stack.length < 5) { return [top, false] }
@@ -792,7 +800,7 @@ function evalCombExpr(top: Comb, lhs_stack: App[]): [GraphN, boolean] {
                 lhs_stack.pop() // w
                 lhs_stack.pop() // v
 
-                return [x, true]
+                return [x.n, true]
             }
         case "C'B":
             if (lhs_stack.length < 4) { return [top, false] }
@@ -802,7 +810,7 @@ function evalCombExpr(top: Comb, lhs_stack: App[]): [GraphN, boolean] {
                 const z = lhs_stack.pop()!.rhs
                 const w = lhs_stack.pop()!.rhs
 
-                return [app(app(x, z), app(y, w)), true]
+                return [npapp(npappptr(x, z), npappptr(y, w)), true]
             }
         case "IO.>>":
         case "IO.>>=":

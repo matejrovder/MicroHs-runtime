@@ -19,7 +19,7 @@ const input = fs.readFileSync(process.argv[2]).toString()
 
 const [top, pointers] = new MhsParser(input).parse()
 const evaluator = new Evaluator(new StandardOutput, new StandardInput, pointers)
-const ev = evaluator.execio(top)
+const ev = evaluator.execio({n: top})
 
 const match = evaluator.match1("IO.return", ev)
 if (match === null || match.type !== 'comb' || match.name !== 'I') {

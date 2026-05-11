@@ -8,15 +8,19 @@
 
 type App = {
     type: 'app';
-    lhs: GraphN;
-    rhs: GraphN;
+    lhs: Nodeptr;
+    rhs: Nodeptr;
+}
+
+type Nodeptr = {
+    n: GraphN
 }
 
 type Const = Comb | Str | Int | FuncRef | Arr;
 
 type Arr = {
     type: 'arr'
-    array: GraphN[];
+    array: Nodeptr[];
 }
 
 type Comb = {
@@ -47,7 +51,7 @@ type Pointer = {
 type PointedTo = {
     type: 'pointedto'
     evaluated: boolean
-    term: GraphN;
+    n: GraphN;
 }
 
 type NumberedRef = {
@@ -74,13 +78,26 @@ function combinator(x: string): Const {
 }
 
 function app(t1: GraphN, t2: GraphN): App {
-    return { "type": "app", "lhs": t1, "rhs": t2 };
+    return { "type": "app", "lhs": {n: t1}, "rhs": {n: t2} };
+}
+
+function npapp(t1: Nodeptr, t2: Nodeptr): GraphN {
+    const app: App = { "type": "app", "lhs": t1, "rhs": t2 }
+    return app;
+}
+
+function npappptr(t1: Nodeptr, t2: Nodeptr): Nodeptr {
+    const app: App = { "type": "app", "lhs": t1, "rhs": t2 }
+    return {n: app};
 }
 
 function funcref(f: string): FuncRef {
     return { "type": "funcref", "name": f };
 }
 
+// function mkIndir(np: Nodeptr): Indir {
+
+// }
 
 /** Creates a (Cons x xs) node */
 function mkCons(x: GraphN, xs: GraphN): App {
@@ -105,4 +122,4 @@ function stringToCons(x: string): App | Const {
 }
 
 
-export { GraphN, Pointer, PointedTo, App, Const, Arr, Comb, Str, Int, FuncRef, combinator, strConst, stringToCons, intConst, app, funcref }
+export { GraphN, Pointer, PointedTo, App, Const, Arr, Comb, Str, Int, FuncRef, Nodeptr, combinator, strConst, stringToCons, intConst, app, npapp, npappptr, funcref }

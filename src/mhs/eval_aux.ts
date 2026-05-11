@@ -11,7 +11,7 @@ export function makePointer(node: GraphN): Pointer {
     if (node.type === 'ptr')
         return node;
 
-    const pointedTo: PointedTo = {'type': 'pointedto', 'evaluated': false, term: node}
+    const pointedTo: PointedTo = {'type': 'pointedto', 'evaluated': false, n: node}
     return {'type': "ptr", 'value': pointedTo}
 }
 
@@ -121,7 +121,7 @@ export function equalTerms(term1: GraphN, term2: GraphN): boolean {
             return term1.value === (term2 as typeof term1).value
         case "ptr": {
             const t2 = term2 as typeof term1
-            return term1.value === t2.value || equalTerms(term1.value.term, t2.value.term)
+            return term1.value === t2.value || equalTerms(term1.value.n, t2.value.n)
         }
         case "comb":
         case "funcref":
@@ -130,13 +130,13 @@ export function equalTerms(term1: GraphN, term2: GraphN): boolean {
         case "int":
             return term1.value === (term2 as typeof term1).value
         case "app":
-            return equalTerms(term1.lhs, (term2 as typeof term1).lhs) && equalTerms(term1.rhs, (term2 as typeof term1).rhs)
+            return equalTerms(term1.lhs.n, (term2 as typeof term1).lhs.n) && equalTerms(term1.rhs.n, (term2 as typeof term1).rhs.n)
         case "arr": {
             const t2 = term2 as typeof term1
             if (term1.array === t2.array)
                 return true
             return term1.array.length === t2.array.length &&
-                term1.array.every((value, index) => equalTerms(value, t2.array[index]))
+                term1.array.every((value, index) => equalTerms(value.n, t2.array[index].n))
         }
     }
 }
