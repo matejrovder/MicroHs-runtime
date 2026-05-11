@@ -45,13 +45,7 @@ type FuncRef = {
 
 type Pointer = {
     type: 'ptr';
-    value: PointedTo;
-}
-
-type PointedTo = {
-    type: 'pointedto'
-    evaluated: boolean
-    n: GraphN;
+    value: Nodeptr;
 }
 
 type NumberedRef = {
@@ -122,4 +116,4 @@ function stringToCons(x: string): App | Const {
 }
 
 
-export { GraphN, Pointer, PointedTo, App, Const, Arr, Comb, Str, Int, FuncRef, Nodeptr, combinator, strConst, stringToCons, intConst, app, npapp, npappptr, funcref }
+export { GraphN, Pointer, App, Const, Arr, Comb, Str, Int, FuncRef, Nodeptr, combinator, strConst, stringToCons, intConst, app, npapp, npappptr, funcref }

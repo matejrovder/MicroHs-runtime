@@ -1,10 +1,10 @@
 import {EvaluationException, ProgramRaisedException} from '../exceptions';
 import {
-    App, app, Arr, Comb, combinator, FuncRef, GraphN, intConst, stringToCons, PointedTo, Pointer, strConst,
+    App, app, Arr, Comb, combinator, FuncRef, GraphN, intConst, stringToCons, Pointer, strConst,
     npapp, Nodeptr, npappptr
 } from '../types'
 import {
-    arithmeticI, arithmeticU, comparison, equalTerms, isNamed, makePointer, performArithmetic,
+    arithmeticI, arithmeticU, comparison, equalTerms, isNamed, performArithmetic,
     threeWayCompareI, threeWayCompareU
 } from "./eval_aux";
 
@@ -141,6 +141,8 @@ export class Evaluator {
                     top = top.lhs.n
                     break
                 case "ptr":
+                    this.evaluate(top.value)
+
                     top = top.value.n
                     break
                 case "numref": {
@@ -254,7 +256,7 @@ export class Evaluator {
      *                                (for internal use only)
      * @returns evaluated expression in WHNF
      */
-    evaluate(np: Nodeptr | PointedTo): GraphN {
+    evaluate(np: Nodeptr): GraphN {
         const lhs_stack: App[] = []
         let top = np.n
         let loopAgain = true
@@ -266,10 +268,7 @@ export class Evaluator {
                     top = top.lhs.n
                     break;
                 case 'ptr':
-                    if (!top.value.evaluated) {
-                        top.value.n = this.evaluate(top.value)
-                        top.value.evaluated = true
-                    }
+                    this.evaluate(top.value)
 
                     top = top.value.n
                     break;
@@ -588,8 +587,7 @@ export class Evaluator {
             case "numref":
                 return "_" + term.value + this.expStringDump(this.pointers.get(term.value)!, depth - 1)
             case "ptr": {
-                const evaluated = term.value.evaluated ? "T" : "F"
-                return "ptr,e=" + evaluated + "( " + this.expStringDump(term.value.n, depth - 1) + " )"
+                return "ptr:" + "( " + this.expStringDump(term.value.n, depth - 1) + " )"
             }
             case "comb":
             case "funcref":
