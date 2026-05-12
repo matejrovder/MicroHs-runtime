@@ -1,7 +1,7 @@
 import { app, combinator, funcref, intConst, Pointer, GraphN, strConst } from "../types";
 import { MhsLexer, mhsToken } from "./mhs_lexer";
 import { ParsingException } from "../exceptions";
-import {makePointer} from "./eval_aux";
+import {equalTerms, makePointer} from "./eval_aux";
 
 /**
  * Parser for the MicroHs combinator files.
@@ -11,6 +11,7 @@ import {makePointer} from "./eval_aux";
 export class MhsParser {
     private currentToken: mhsToken
     private lexer: MhsLexer
+    private EMPTY_PTR = strConst("EMPTY_PTR")
 
     constructor(input: string) {
         this.lexer = new MhsLexer(input)
@@ -79,7 +80,7 @@ export class MhsParser {
                         stack.push(referenced)
                     }
                     else {
-                        const ptr = makePointer(strConst("undefined"))
+                        const ptr = makePointer(this.EMPTY_PTR)
                         pointers.set(this.lexer.numVal, ptr)
                         stack.push(ptr)
                     }
@@ -107,6 +108,13 @@ export class MhsParser {
                         throw new ParsingException("Empty stack at program end '}'")
                     if (stack.length > 1)
                         throw new ParsingException("Stack length > 1 at program end '}'")
+
+                    // check if each referenced shared expression has been defined
+                    for (const [key, ptr] of pointers) {
+                        if (equalTerms(ptr.value.n, this.EMPTY_PTR))
+                            throw new ParsingException("Undefined expression number " + key)
+                    }
+
                     return stack.pop()!
                 }
                 case mhsToken.eof: {
