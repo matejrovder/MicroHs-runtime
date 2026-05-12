@@ -53,9 +53,7 @@ export class Evaluator {
             throw new EvaluationException("invalid node type")
     }
 
-    /**
-     * Unwraps a pointer or a reference.
-     */
+// TODO: remove
     private unwrapPtr(top: GraphN): GraphN {
         switch (top.type) {
             // case 'ptr':

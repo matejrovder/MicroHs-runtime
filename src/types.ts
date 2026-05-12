@@ -4,16 +4,18 @@
  * helper functions and other functions concerning types.
  */
 
+
+/** A wrapper for GraphN, used to 'emulate' pointers */
+type Nodeptr = {
+    n: GraphN
+}
+
 // Types of graph nodes
 
 type App = {
     type: 'app';
     lhs: Nodeptr;
     rhs: Nodeptr;
-}
-
-type Nodeptr = {
-    n: GraphN
 }
 
 type Const = Comb | Str | Int | FuncRef | Arr;
