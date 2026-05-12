@@ -23,6 +23,6 @@ const ev = evaluator.execio({n: top})
 
 const match = evaluator.match1("IO.return", ev)
 if (match === null || match.type !== 'comb' || match.name !== 'I') {
-    console.log("IO execution failure, instead of (IO.return I) got " + evaluator.expStringDump(ev))
+    console.log("IO execution failure, instead of (IO.return I) got " + evaluator.debugExpDump(ev))
     process.exit(1)
 }

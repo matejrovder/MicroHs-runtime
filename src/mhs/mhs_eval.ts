@@ -86,7 +86,7 @@ export class Evaluator {
      * execio function.
      */
     execio(node: Nodeptr): GraphN {
-        let top = node
+        const top = node
         const cont: GraphN[] = [] // continuation of execio
 
         while (true) {
@@ -150,7 +150,7 @@ export class Evaluator {
 
                             lhs_stack.pop() // output stream/handle
                             const x = this.evaluate(lhs_stack.pop()!.rhs)
-                            this.output.println(this.expStringDump(x))
+                            this.output.println(this.reprExpDump(x))
                             return combinator("I")
                         }
                         case "IO.return": {
@@ -552,17 +552,17 @@ export class Evaluator {
     }
 
     /**
-     * Returns a string represenation of the expression,
-     * also resolves references up to _depth_
+     * Returns a string representation of the expression meant for debugging,
+     * resolves pointers up to _depth_
      * @param term - expression to dump in to string
-     * @param depth - depth to which to resolve references
+     * @param depth - depth to which to resolve pointers
      */
-    expStringDump(term: GraphN, depth: number = 3): string {
+    debugExpDump(term: GraphN, depth: number = 3): string {
         if (depth <= 0)
             return ">...<"
         switch (term.type) {
             case "ptr": {
-                return "ptr:" + "( " + this.expStringDump(term.value.n, depth - 1) + " )"
+                return "ptr:" + "( " + this.debugExpDump(term.value.n, depth - 1) + " )"
             }
             case "comb":
             case "funcref":
@@ -576,15 +576,15 @@ export class Evaluator {
                 return term.value.toString();
             case "app":
                 {
-                    return " ( " + this.expStringDump(term.lhs.n, depth - 1) + " " +
-                        this.expStringDump(term.rhs.n, depth - 1) + " ) ";
+                    return " ( " + this.debugExpDump(term.lhs.n, depth - 1) + " " +
+                        this.debugExpDump(term.rhs.n, depth - 1) + " ) ";
                 }
             case "arr":
                 if (term.array.length > 5)
                     return "[...]"
                 else {
                     let res = "[ "
-                    term.array.forEach(x => { res = res += this.expStringDump(x.n, depth - 1) + ", " })
+                    term.array.forEach(x => { res = res += this.debugExpDump(x.n, depth - 1) + ", " })
                     res += " ]"
                     return res
                 }
@@ -593,6 +593,44 @@ export class Evaluator {
         }
     }
 
+    /**
+     * Returns a string representation of the expression
+     * resolves pointers up to _depth_ not to get stuck in a loop
+     * @param term - expression to dump in to string
+     * @param depth - depth to which to resolve pointers
+     */
+    reprExpDump(term: GraphN, depth: number = 10): string {
+        if (depth <= 0)
+            return ">...<"
+        switch (term.type) {
+            case "ptr": {
+                return this.reprExpDump(term.value.n, depth - 1)
+            }
+            case "comb":
+            case "funcref":
+                return term.name;
+            case "str":
+            return term.value;
+            case "int":
+                return term.value.toString();
+            case "app":
+            {
+                return " ( " + this.reprExpDump(term.lhs.n, depth - 1) + " " +
+                    this.reprExpDump(term.rhs.n, depth - 1) + " ) ";
+            }
+            case "arr":
+                if (term.array.length > 5)
+                    return "[...]"
+                else {
+                    let res = "[ "
+                    term.array.forEach(x => { res = res += this.reprExpDump(x.n, depth - 1) + ", " })
+                    res += " ]"
+                    return res
+                }
+            default:
+                throw new Error("invalid lambda term type");
+        }
+    }
 }
 
 /**
