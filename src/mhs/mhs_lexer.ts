@@ -34,8 +34,6 @@ const combinators: Set<string> = new Set([
     "K3",
     "K4",
     "C'B",
-    // "ord",
-    // "chr",
     "IO.>>",
     "IO.>>=",
     "IO.return"
