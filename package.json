@@ -10,7 +10,6 @@
     "typescript": "^5.9.3"
   },
   "scripts": {
-    "test": "jest",
     "build": "tsc"
   }
 }
