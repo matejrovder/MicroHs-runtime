@@ -23,7 +23,7 @@ if [[ $TO -ne 1 ]]; then
 
     mkdir -p "${COMBFOLDER}"
 
-    for i in $(find "$TESTFOLDER" -maxdepth 1 -name '*.hs' -exec basename -s .hs {} \;) ; do
+    for i in $(find "$TESTFOLDER" -maxdepth 1 -name '*.hs' -exec basename -s .hs {} \; | sort) ; do
         COMBFILE="${COMBFOLDER}/${i}.comb"
         PROGFILE="${TESTFOLDER}"/"${i}".hs
         if [ ! -f "$COMBFILE" ] || [ $0 -nt "$COMBFILE" ] || [ "$PROGFILE" -nt "$COMBFILE" ] ; then
@@ -36,7 +36,7 @@ if [[ $TO -ne 1 ]]; then
     # use $REFHS: mhs or ghc to compile tests and create reference output
     $REFHS --version > /dev/null || { echo "$REFHS not found"; exit 1; }
 
-    for i in $(find "$TESTFOLDER" -maxdepth 1 -name '*.hs' -exec basename -s .hs {} \;) ; do
+    for i in $(find "$TESTFOLDER" -maxdepth 1 -name '*.hs' -exec basename -s .hs {} \; | sort) ; do
         IOUT="${TESTFOLDER}/${i}${SUFFIX}"
         IPROG="${TESTFOLDER}"/"${i}".hs
         INFILE="${TESTFOLDER}"/"${i}${IN_SUFFIX}"
@@ -69,7 +69,7 @@ else
 fi
 
 # runs the tests
-for i in $(find "$TESTFOLDER" -name '*.hs' -exec basename -s .hs {} \;) ; do
+for i in $(find "$TESTFOLDER" -name '*.hs' -exec basename -s .hs {} \; | sort) ; do
     COMBFILE="${COMBFOLDER}"/"${i}".comb
 
     if [ ! -f "$COMBFILE" ]; then
