@@ -8,7 +8,7 @@ import { ParsingException } from '../exceptions';
 export class Parser {
     currentToken: token = token.eof;
     lexer: Lexer;
-    knownFunctions: Set<string> = new Set(["+", "-", "*", "/", "=", ">", "<", "<=", ">=", "/="]);
+    knownFunctions: Set<string> = new Set(["+", "-", "*", "/", "=", ">", "<", "<=", ">=", "/=", "printAndReturn"]);
 
     constructor(input: string) {
         this.lexer = new Lexer(input)

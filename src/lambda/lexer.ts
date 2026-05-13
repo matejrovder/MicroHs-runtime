@@ -82,7 +82,7 @@ export class Lexer {
                 }
 
                 this.varIdentifier = ""
-                while (/[A-Za-z0-9+\-*/=]/.test(this.ch)) {
+                while (/[A-Za-z0-9+\-*/=<>]/.test(this.ch)) {
                     this.varIdentifier += this.ch;
                     this.ch = this.getChar();
                 }

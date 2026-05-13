@@ -1,4 +1,4 @@
-import { etaReduction, LT, ltapp } from './lambda_types'
+import { LT, ltapp } from './lambda_types'
 import { app, GraphN, combinator, strConst } from '../types'
 
 // Compilation of LT to SKI is implemented by allowing SKI types in LT AST as output from _compileSKI and abstractSKI,
@@ -108,20 +108,12 @@ function abstractSKI(term: LT, absVariable: string): LT {
             }
         case "ltapp":
             {
-                const etaReduced = etaReduction(term, absVariable);
-                if (etaReduced !== null)
-                    return _compileSKI(etaReduced)
-
                 const term1 = abstractSKI(term.lhs, absVariable);
                 const term2 = abstractSKI(term.rhs, absVariable);
                 return optimizeCombS(term1, term2)
             }
         case "app":
             {
-                const etaReduced = etaReduction(term, absVariable);
-                if (etaReduced !== null)
-                    return _compileSKI(etaReduced)
-
                 const term1 = abstractSKI(term.lhs.n, absVariable);
                 const term2 = abstractSKI(term.rhs.n, absVariable);
                 return optimizeCombS(term1, term2)

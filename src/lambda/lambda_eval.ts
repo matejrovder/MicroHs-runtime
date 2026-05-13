@@ -113,6 +113,13 @@ export class Evaluator {
                 return this.performStrictFunc2(top, lhs_stack, comparison((p1, p2) => p1 >= p2))
             case ">":
                 return this.performStrictFunc2(top, lhs_stack, comparison((p1, p2) => p1 > p2))
+            case "printAndReturn": {
+                if (lhs_stack.length < 1)
+                    return [top, false]
+                const x = this.evaluate(lhs_stack.pop()!.rhs)
+                console.log(this.debugExpDump(x, 10))
+                return [x, true]
+            }
             default:
                 throw new EvaluationException("unknown function " + top.name)
         }
