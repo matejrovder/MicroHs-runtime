@@ -157,7 +157,8 @@ export class Evaluator {
                                 throw new EvaluationException("A.read: invalid array")
                             if (y.type !== 'int' || y.value < 0 || y.value >= x.array.length)
                                 throw new EvaluationException("Invalid array index")
-                            return x.array[Number(y.value)].n // TODO: return indir here
+                            // returns a Pointer referencing the Nodeptr held by the array
+                            return {type: 'ptr', value: x.array[Number(y.value)]}
                         }
                         case "A.size": {
                             if (lhs_stack.length < 1)
@@ -336,7 +337,7 @@ export class Evaluator {
                 //  return the argument unchanged
                 if (lhs_stack.length < 1) { return [top, false] }
                 else {
-                    return [lhs_stack.pop()!.rhs.n, true] //TODO:indir
+                    return [lhs_stack.pop()!.rhs.n, true]
                 }
             }
             case "equal":

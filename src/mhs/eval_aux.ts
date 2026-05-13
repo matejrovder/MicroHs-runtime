@@ -3,17 +3,8 @@
  * Contains auxiliary functions, mostly concerning numbers, for the Evaluator (mhs_eval.ts)
  */
 
-import {app, combinator, GraphN, intConst, Nodeptr, Pointer} from "../types";
+import {app, combinator, GraphN, intConst} from "../types";
 import {EvaluationException} from "../exceptions";
-
-/** Makes a Pointer node and a PointedTo object holding the given node */
-export function makePointer(node: GraphN): Pointer {
-    if (node.type === 'ptr')
-        return node;
-
-    const pointedTo: Nodeptr = {n: node}
-    return {'type': "ptr", 'value': pointedTo}
-}
 
 
 /**

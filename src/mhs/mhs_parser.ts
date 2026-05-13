@@ -1,7 +1,7 @@
-import { app, combinator, funcref, intConst, Pointer, GraphN, strConst } from "../types";
+import {app, combinator, funcref, intConst, Pointer, GraphN, strConst, makePointer} from "../types";
 import { MhsLexer, mhsToken } from "./mhs_lexer";
 import { ParsingException } from "../exceptions";
-import {equalTerms, makePointer} from "./eval_aux";
+import {equalTerms} from "./eval_aux";
 
 /**
  * Parser for the MicroHs combinator files.

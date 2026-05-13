@@ -72,11 +72,13 @@ function app(t1: GraphN, t2: GraphN): App {
     return { "type": "app", "lhs": {n: t1}, "rhs": {n: t2} };
 }
 
+/** Takes two Nodeptr as arguments, returns an application as GraphN */
 function npapp(t1: Nodeptr, t2: Nodeptr): GraphN {
     const app: App = { "type": "app", "lhs": t1, "rhs": t2 }
     return app;
 }
 
+/** Takes two Nodeptr as arguments, returns a Nodeptr containing an application */
 function npappptr(t1: Nodeptr, t2: Nodeptr): Nodeptr {
     const app: App = { "type": "app", "lhs": t1, "rhs": t2 }
     return {n: app};
@@ -112,5 +114,14 @@ function stringToCons(x: string): App | Const {
     return res
 }
 
+/** Makes a Pointer node and a PointedTo object holding the given node */
+function makePointer(node: GraphN): Pointer {
+    if (node.type === 'ptr')
+        return node;
 
-export { GraphN, Pointer, App, Const, Arr, Comb, Str, Int, FuncRef, Nodeptr, combinator, strConst, stringToCons, intConst, app, npapp, npappptr, funcref }
+    const pointedTo: Nodeptr = {n: node}
+    return {'type': "ptr", 'value': pointedTo}
+}
+
+export { GraphN, Pointer, App, Const, Arr, Comb, Str, Int, FuncRef, Nodeptr, combinator, strConst, stringToCons,
+         makePointer, intConst, app, npapp, npappptr, funcref }
