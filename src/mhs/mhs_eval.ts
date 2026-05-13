@@ -211,10 +211,8 @@ export class Evaluator {
 
     /**
      * Evaluates the expression to WHNF.
-     * @param node - the expression to evaluate
-     * @param {PointedTo} writeback - optional, will be updated with the current state
-     *                                of the expression after each reduction step
-     *                                (for internal use only)
+     * @param np - a Nodeptr containing the expression to evaluate,
+     *             will be updated with the evaluated expression
      * @returns evaluated expression in WHNF
      */
     evaluate(np: Nodeptr): GraphN {

@@ -1,4 +1,4 @@
-module Lazyness where
+module Lazy3 where
 
 import System.IO.Unsafe
 
