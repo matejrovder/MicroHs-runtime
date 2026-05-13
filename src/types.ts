@@ -110,7 +110,7 @@ function stringToCons(x: string): App | Const {
     return res
 }
 
-/** Makes a Pointer node and a PointedTo object holding the given node */
+/** Makes a Pointer node and a Nodeptr object holding the given node */
 function makePointer(node: GraphN): Pointer {
     if (node.type === 'ptr')
         return node;
