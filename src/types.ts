@@ -88,10 +88,6 @@ function funcref(f: string): FuncRef {
     return { "type": "funcref", "name": f };
 }
 
-// function mkIndir(np: Nodeptr): Indir {
-
-// }
-
 /** Creates a (Cons x xs) node */
 function mkCons(x: GraphN, xs: GraphN): App {
     return app(app(combinator("O"), x), xs)
