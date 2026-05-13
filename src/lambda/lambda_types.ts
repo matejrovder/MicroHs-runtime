@@ -70,20 +70,21 @@ function contains(term: LT, variable: string): boolean {
 }
 
 function etaReduction(term: LT, redVariable: string): LT | null {
-    switch (term.type) {
-        case "ltapp":
-        case "app":
-            {
-                if (term.rhs.type === "var") {
-                    if (term.rhs.varN === redVariable && !contains(term.lhs, redVariable))
-                        return term.lhs;
-                }
+    return null
+    // switch (term.type) {
+    //     case "ltapp":
+    //     case "app":
+    //         {
+    //             if (term.rhs.type === "var") {
+    //                 if (term.rhs.varN === redVariable && !contains(term.lhs, redVariable))
+    //                     return term.lhs;
+    //             }
 
-                return null;
-            }
-        default:
-            return null;
-    }
+    //             return null;
+    //         }
+    //     default:
+    //         return null;
+    // }
 }
 
 function makeAbstraction(x: string, term: LT) {
@@ -106,9 +107,11 @@ function simpleExpString(term: LT | GraphN): string {
             return term.value;
         case "int":
             return term.value.toString();
-        case "app":
         case "ltapp": {
             return " ( " + simpleExpString(term.lhs) + " " + simpleExpString(term.rhs) + " ) ";
+        }
+        case "app": {
+            return " ( " + simpleExpString(term.lhs.n) + " " + simpleExpString(term.rhs.n) + " ) ";
         }
         case "abs": {
             return " ( λ " + term.var + " . " + simpleExpString(term.term) + " ) ";

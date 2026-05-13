@@ -6,14 +6,17 @@ import { app, GraphN, combinator, strConst } from '../types'
 // The reasons for this are several, e.g.the way lambda abstractions are converted to SKI combinator expressions
 // requires variables to be kept there during compilation and the strict SKI / Graph node type doesn't allow variables.
 
+/** Checks if term is the given combinator */
 function isComb(term: LT, name: string) {
     return term.type === 'comb' && term.name === name
 }
 
+/**
+ * Optimizes the expression (S term1 term2)
+ * according to the rules from Simon L. Peyton Jones'
+ * "The Implementation of Programming Languages" p. 273
+ */
 function optimizeCombS(term1: LT, term2: LT): LT {
-    /**
-     * @brief Optimizes expression S term1 term2
-     */
 
     if (term1.type === 'ltapp' && term2.type === 'ltapp') {
         const t1l = term1.lhs, t1r = term1.rhs
@@ -53,6 +56,10 @@ function optimizeCombS(term1: LT, term2: LT): LT {
     return ltapp(ltapp(combinator("S"), term1), term2);
 }
 
+/**
+ * Checks and converts the expression to GraphN type.
+ * All free variables are converted to string nodes with their names.
+ */
 function ensureSKI(term: LT): GraphN {
     switch (term.type) {
         case "str":
@@ -67,17 +74,24 @@ function ensureSKI(term: LT): GraphN {
                 return strConst(term.varN);
             }
         case "ltapp":
-        case "app":
-            // optionally keep only case "ltapp" to strongly distinguish
-            // between App and LTApp / Graph nodes (SKI) and LT
             {
                 return app(ensureSKI(term.lhs), ensureSKI(term.rhs));
+            }
+        case "app":
+            {
+                // might not be required
+                return app(ensureSKI(term.lhs.n), ensureSKI(term.rhs.n));
             }
         default:
             throw new Error("invalid lambda term type: "+ term.type);
     }
 }
 
+/**
+ * Abstracts the variable from the lambda term
+ * according to the rules from Simon L. Peyton Jones'
+ * "The Implementation of Programming Languages" p. 273
+ */
 function abstractSKI(term: LT, absVariable: string): LT {
     switch (term.type) {
         case "var":
@@ -93,7 +107,6 @@ function abstractSKI(term: LT, absVariable: string): LT {
                 return ltapp(combinator("K"), term);
             }
         case "ltapp":
-        case "app":
             {
                 const etaReduced = etaReduction(term, absVariable);
                 if (etaReduced !== null)
@@ -101,6 +114,16 @@ function abstractSKI(term: LT, absVariable: string): LT {
 
                 const term1 = abstractSKI(term.lhs, absVariable);
                 const term2 = abstractSKI(term.rhs, absVariable);
+                return optimizeCombS(term1, term2)
+            }
+        case "app":
+            {
+                const etaReduced = etaReduction(term, absVariable);
+                if (etaReduced !== null)
+                    return _compileSKI(etaReduced)
+
+                const term1 = abstractSKI(term.lhs.n, absVariable);
+                const term2 = abstractSKI(term.rhs.n, absVariable);
                 return optimizeCombS(term1, term2)
             }
         case "abs":
@@ -113,6 +136,15 @@ function abstractSKI(term: LT, absVariable: string): LT {
     }
 }
 
+/**
+ * For internal use only. 
+ * ensureSKI needs to be called on result of this function.
+ * Use the compileSKI wrapper.
+ * 
+ * Compiles the lambda term
+ * according to the rules from Simon L. Peyton Jones'
+ * "The Implementation of Programming Languages" p. 273
+ */
 function _compileSKI(term: LT): LT {
     switch (term.type) {
         case "var":
@@ -135,11 +167,14 @@ function _compileSKI(term: LT): LT {
     }
 }
 
+/**
+ * Compiles the lambda term
+ * according to the rules from Simon L. Peyton Jones'
+ * "The Implementation of Programming Languages" p. 273
+ * 
+ * and returns valid GraphN node
+ */
 export function compileSKI(term: LT): GraphN {
-    /**
-     * @brief compiles to SKI and then ensures valid SKI (application/constant/pointer)
-     */
-
     const compiled = _compileSKI(term)
     return ensureSKI(compiled)
 }

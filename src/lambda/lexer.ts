@@ -8,6 +8,7 @@ export enum token {
     number = "number"
 }
 
+/** Lexer for lambda expressions */
 export class Lexer {
     buffer: string;
     offset: number;

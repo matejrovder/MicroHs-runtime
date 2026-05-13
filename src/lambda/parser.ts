@@ -2,14 +2,13 @@ import { token, Lexer } from './lexer';
 import { LT, ltapp, makeAbstraction, variable } from "./lambda_types";
 import { combinator, funcref, intConst } from "../types";
 import { ParsingException } from '../exceptions';
-// import { ASTNode, AbstractionNode, ApplicationNode, VariableNode, CombinatorNode, EmptyNode, makeAbstraction } from '../ast'
 
-// import * as y ...
 
+/** Parser for lambda expressions */
 export class Parser {
     currentToken: token = token.eof;
     lexer: Lexer;
-    knownFunctions: Set<string> = new Set(["+", "-", "*", "/", "print", "=", "double"]);
+    knownFunctions: Set<string> = new Set(["+", "-", "*", "/", "=", ">", "<", "<=", ">=", "/="]);
 
     constructor(input: string) {
         this.lexer = new Lexer(input)
@@ -37,6 +36,11 @@ export class Parser {
         return varName;
     }
 
+
+    /**
+     * Parses a lambda expression 'expr'
+     * @returns (lhs expr) if lhs is set, else expr
+     */
     parse(lhs: LT | null = null): LT {
         switch (this.currentToken) {
             case token.bracketleft:
@@ -95,7 +99,10 @@ export class Parser {
         return this.parse(lhs);
     }
 
-
+    /**
+     * Parses a lambda expression after an opening bracket: expr ) 
+     * @returns (lhs expr) if lhs is set, else expr
+     */
     parseBracketExpr(lhs: LT | null = null): LT {
         let rhs = null;
 
@@ -119,5 +126,4 @@ export class Parser {
         }
         return rhs;
     }
-    // parse
 }
