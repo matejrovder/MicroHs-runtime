@@ -1,3 +1,8 @@
+/**
+ * @file
+ * The program for running the lambda evaluator from console
+ */
+
 import { GraphN } from '../types'
 import { compileSKI } from "./ski_compile";
 import { Parser } from './parser'
