@@ -4,6 +4,8 @@ This runtime supports combinator files from the [MicroHs](https://github.com/aug
 ### Requirements:
 - Node.js & npm
 - [MicroHs](https://github.com/augustss/MicroHs) for compiling Haskell to .comb files, supported by this runtime
+    - the most recent MicroHs versions are not supported yet (it requires support for new combinators), recommended
+      version is v0.14.27.0, git commit hash: `7120b95c11023fea1d5b82ed7a10e2f5709b93ac`.
 
 ### Compilation
 - `npm install` to install dependencies, alternatively `npm install --production` installs only a minimal set of packages
@@ -30,6 +32,8 @@ The tests are then run. If some of the test fail, the remaining tests are run an
 - to skip the compilation of combinator files and creation of reference outputs, run:\
 `TEST_ONLY=1 ./test.sh`
 
+The name of each test program must start with an uppercase letter and must contain no spaces. If the name of the program is `<Name>.hs`, the program should start with the line `module <Name> where`, the reference output file created will be named `<Name>_out.txt`. Additionally, if a file named `<Name>_in.txt` exists, its contents are piped to the program's standard input for the test.
+
 
 ## Lambda expression evaluator
 A simple evaluator for lambda expressions is included. It compiles the entered lambda expression to SKI (including optimization) and evaluates it lazily (call-by-need reduction).
@@ -41,6 +45,8 @@ An example in Bash:
 `node dist/lambda/main.js <<< 'Y (\f. (\x . = x 0 1 (* (f (- x 1)) x) ) ) 6'`
 
 This calculates the factorial of 6.
+
+Use `./lambda_test.sh` to run some tests of the lambda evaluator (lambda_tests directory). 
 
 ------------------------------------------------------------------------------------
 <img src="https://fit.cvut.cz/static/images/fit-cvut-logo-en.svg" alt="FIT CTU logo" height="200">
