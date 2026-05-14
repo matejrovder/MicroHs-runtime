@@ -46,7 +46,7 @@ An example in Bash:
 
 This calculates the factorial of 6.
 
-Use `./lambda_test.sh` to run some tests of the lambda evaluator (lambda_tests directory). 
+Use `./lambda_test.sh` to run some tests of the lambda evaluator (lambda_tests directory). The test script ignores the first two lines of the evaluator output, which are the parsed expression and the expression after conversion to SKI combinators, the rest of the output is compared to the reference output.
 
 ------------------------------------------------------------------------------------
 <img src="https://fit.cvut.cz/static/images/fit-cvut-logo-en.svg" alt="FIT CTU logo" height="200">

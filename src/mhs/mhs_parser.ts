@@ -41,7 +41,7 @@ export class MhsParser {
 
     /**
      * Parses the input passed to the constructor.
-     * @returns the root of the combinator graph and a map of numbered shared expressions.
+     * @returns the root of the combinator graph
      * @throws {ParsingException}
      */
     parse(): GraphN {
