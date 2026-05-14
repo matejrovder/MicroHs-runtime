@@ -1,7 +1,5 @@
-module PrimesT where
+module Primes where
 
--- David Turner's primes list
--- https://wiki.haskell.org/Prime_numbers
 primes =
     sieve [2..]
   where
