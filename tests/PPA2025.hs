@@ -1,6 +1,6 @@
 -- BI-PPA coursework
 
-module Functions where
+module PPA2025 where
 import Prelude hiding
     (drop, elem, filter, foldl, foldl', foldr1, foldl1, foldr, maximum, minimum, product, until, init, (!!), and, or, any, all, concat, concatMap, scanl, scanl1, scanr, scanr1, iterate, repeat, replicate, cycle, head, last, length, null, takeWhile, dropWhile, span, break, splitAt, notElem, lookup, map, product, reverse, splitAt, sum, tail, take, words, zipWith, zip, zip3, zipWith3, unzip, unzip3)
 
