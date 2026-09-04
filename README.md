@@ -1,6 +1,8 @@
 # A simple TypeScript runtime for MicroHs
 This runtime supports combinator files from the [MicroHs](https://github.com/augustss/MicroHs) Haskell compiler. 
 
+The `doc` folder contains the thesis text.
+
 ### Requirements:
 - Node.js & npm
 - [MicroHs](https://github.com/augustss/MicroHs) for compiling Haskell to .comb files, supported by this runtime
